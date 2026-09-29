@@ -127,3 +127,15 @@ def next_customer_code(db: Session) -> str:
         {},
     )
     return f"CUS-{value:06d}"
+
+
+def next_payment_number(db: Session, year: int) -> str:
+    prefix = f"PAY-{year:04d}-"
+    value = _next_value(
+        db,
+        f"payment:{year:04d}",
+        "SELECT MAX(CAST(SUBSTRING(payment_number, 10) AS UNSIGNED)) "
+        "FROM payments WHERE payment_number LIKE :prefix",
+        {"prefix": f"{prefix}%"},
+    )
+    return f"{prefix}{value:06d}"

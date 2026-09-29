@@ -21,7 +21,7 @@ import {
 import './Premiums.css'
 
 /**
- * Mock payment page for one policy, optionally for one instalment.
+ * Payment page for one policy, optionally for one instalment.
  *
  * Handles every reason a payment cannot start (role, unknown policy, unknown
  * instalment, already paid, not yet due, nothing payable) before handing a
@@ -32,7 +32,7 @@ const PremiumPayment = () => {
   const navigate = useNavigate()
   const { canRecordPayment, role } = useDemoRole()
 
-  const account = useAsync(() => getPremiumScheduleByPolicyId(policyId), [policyId], {
+  const account = useAsync(() => getPremiumScheduleByPolicyId(policyId), [policyId, role], {
     enabled: canRecordPayment,
   })
 
@@ -55,9 +55,9 @@ const PremiumPayment = () => {
         { label: policyId, to: buildPolicyPremiumsPath(policyId) },
         { label: 'Pay premium' },
       ]}
-      eyebrow="Mock payment"
+      eyebrow="Premium payment"
       title="Pay premium"
-      description="Record a simulated premium payment against a due or overdue instalment."
+      description="Record a premium payment, in full or in part, against a due or overdue instalment."
       actions={
         <Button variant="secondary" to={buildPolicyPremiumsPath(policyId)}>
           Cancel
@@ -74,7 +74,7 @@ const PremiumPayment = () => {
         <EmptyState
           icon="⛔"
           title="Recording payments is not available for this role"
-          description={`The demo role is set to ${role ?? 'unknown'}. Agents have read-only access to premium status. Switch to Policyholder or Administrator in the header to record a mock payment.`}
+          description={`The demo role is set to ${role ?? 'unknown'}. Agents have read-only access to premium status. Switch to Policyholder or Administrator in the header to record a payment.`}
           action={backToSchedule}
         />
       </>

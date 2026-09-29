@@ -8,7 +8,10 @@
    existing screens and the not-yet-migrated modules see the same records
    and policy numbers;
 3. links the dev logins to business records: agent@example.com -> AGT-2207
-   (the frontend's DEMO_AGENT_ID) and policyholder@example.com -> CUS-100241.
+   (the frontend's DEMO_AGENT_ID) and policyholder@example.com -> CUS-100241;
+4. Module 2: creates the premium schedule of every issued policy that lacks
+   one, then records the frontend's demo payments (seed_data/module2.json)
+   through the same balance rules the API uses.
 
 Development/test only (refuses when APP_ENV=production). Deterministic and
 idempotent: records are matched on their business codes and never
@@ -17,7 +20,7 @@ overwritten. Module 1 data is inserted in a single transaction.
 
 import json
 import sys
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -29,7 +32,11 @@ from app.db.session import SessionLocal
 from app.models import (
     Agent,
     Customer,
+    Installment,
+    Payment,
+    PaymentStatus,
     Policy,
+    PremiumSchedule,
     Product,
     ProductFeature,
     ProductFeatureKind,
@@ -38,9 +45,13 @@ from app.models import (
     RoleName,
     User,
 )
+from app.repositories import premiums as premium_repo
 from app.scripts.seed_dev_users import seed_dev_users
+from app.services import premium_rules
+from app.services.premiums import create_schedule
 
 SEED_FILE = Path(__file__).parent / "seed_data" / "module1.json"
+PAYMENTS_FILE = Path(__file__).parent / "seed_data" / "module2.json"
 
 # Dev login -> business record it represents.
 USER_LINKS = {
@@ -185,6 +196,55 @@ def seed_module1(db: Session, data: dict | None = None) -> dict[str, int]:
     return created
 
 
+def seed_module2(db: Session, data: dict | None = None) -> dict[str, int]:
+    """Backfill schedules, then add missing demo payments; one transaction.
+
+    Payments are applied with premium_rules, so seeded balances obey exactly
+    the rules the API enforces (a seeded payment can never overpay).
+    """
+    data = data or json.loads(PAYMENTS_FILE.read_text(encoding="utf-8"))
+    created = {"schedules": 0, "payments": 0}
+    for policy in premium_repo.policies_without_schedule(db):
+        create_schedule(db, policy)
+        created["schedules"] += 1
+    db.flush()
+
+    existing = set(db.scalars(select(Payment.payment_number)))
+    for raw in data["payments"]:
+        if raw["payment_number"] in existing:
+            continue
+        installment = db.scalars(
+            select(Installment)
+            .join(PremiumSchedule, PremiumSchedule.id == Installment.schedule_id)
+            .join(Policy, Policy.id == PremiumSchedule.policy_id)
+            .where(
+                Policy.policy_number == raw["policy_number"],
+                Installment.installment_number == raw["installment_number"],
+            )
+        ).one()
+        amount = Decimal(str(raw["amount"])).quantize(premium_rules.CENT)
+        if raw["status"] == PaymentStatus.SUCCESSFUL:
+            installment.amount_paid, installment.status = premium_rules.apply_successful_payment(
+                installment.amount_paid, installment.amount_due, amount
+            )
+        db.add(
+            Payment(
+                payment_number=raw["payment_number"],
+                payment_reference=raw["payment_reference"],
+                installment=installment,
+                amount=amount,
+                status=raw["status"],
+                payment_method=raw["payment_method"],
+                paid_at=datetime.fromisoformat(raw["paid_at"]),
+                failure_reason=raw["failure_reason"],
+            )
+        )
+        created["payments"] += 1
+
+    db.commit()
+    return created
+
+
 def main() -> int:
     if get_settings().app_env == "production":
         print("Refusing to seed development data when APP_ENV=production.", file=sys.stderr)
@@ -194,6 +254,8 @@ def main() -> int:
         users = seed_dev_users(db)
     with SessionLocal() as db:
         created = seed_module1(db)
+    with SessionLocal() as db:
+        created |= seed_module2(db)
 
     print(f"users     created {len(users)}")
     for key, count in created.items():

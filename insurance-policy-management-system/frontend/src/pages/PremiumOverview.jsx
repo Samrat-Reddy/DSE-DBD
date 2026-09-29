@@ -45,11 +45,12 @@ const PremiumOverview = () => {
   const [query, setQuery] = useState(DEFAULT_PREMIUM_QUERY)
   const debouncedSearch = useDebouncedValue(query.search, 300)
 
-  const portfolio = useAsync(() => getPremiumSchedules(), [])
+  // Keyed on the role: each demo role signs in as a different account and scope.
+  const portfolio = useAsync(() => getPremiumSchedules(), [role])
 
   const accounts = useAsync(
     () => getPremiumSchedules({ ...query, search: debouncedSearch }),
-    [debouncedSearch, query.standing, query.sort],
+    [debouncedSearch, query.standing, query.sort, role],
   )
 
   const isFiltered = useMemo(
@@ -127,7 +128,7 @@ const PremiumOverview = () => {
       <PageHeader
         eyebrow="Module 2 · Premium Schedule & Payments"
         title="Premiums & payments"
-        description="Track premium instalments across issued policies, identify overdue premium, and record mock payments."
+        description="Track premium instalments across issued policies, identify overdue premium, and record payments."
         actions={
           <Button variant="secondary" to={ROUTES.PAYMENT_HISTORY}>
             Payment history
@@ -144,7 +145,7 @@ const PremiumOverview = () => {
       {role === ROLES.AGENT && (
         <p className="premiums__role-note">
           <strong>Agent view is read-only.</strong> Switch the demo role to Policyholder or
-          Administrator to record a mock payment.
+          Administrator to record a payment.
         </p>
       )}
 

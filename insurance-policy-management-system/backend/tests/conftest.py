@@ -44,6 +44,9 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 # Tables emptied after each MySQL API test, in foreign-key order.
 DATA_TABLES = (
+    "payments",
+    "installments",
+    "premium_schedules",
     "policies",
     "customers",
     "agents",

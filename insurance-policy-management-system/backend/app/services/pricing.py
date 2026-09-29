@@ -2,12 +2,15 @@
 
 Same formula the frontend previews with (frontend/src/utils/policyPricing.js):
 the product's base annual premium scales linearly with the chosen coverage,
-and each amount is rounded half-up to whole rupees.
+rounded half-up to whole rupees. The per-instalment amount follows the
+premium schedule's split rule (app.services.premium_rules), so the premium a
+policy displays is exactly what its schedule charges.
 """
 
 from decimal import ROUND_HALF_UP, Decimal
 
 from app.models import PremiumFrequency, Product
+from app.services.premium_rules import regular_installment_amount
 
 WHOLE_RUPEE = Decimal("1")
 CENTS = Decimal("0.01")
@@ -24,4 +27,5 @@ def rate_annual_premium(product: Product, coverage_amount: Decimal) -> Decimal:
 
 
 def instalment_premium(annual_premium: Decimal, frequency: PremiumFrequency) -> Decimal:
-    return _to_rupees(annual_premium / frequency.instalments_per_year)
+    """The regular instalment of the policy's premium schedule."""
+    return regular_installment_amount(annual_premium, PremiumFrequency(frequency))

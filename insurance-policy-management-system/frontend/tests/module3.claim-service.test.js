@@ -30,7 +30,7 @@ before(async () => {
   claims = await harness.load('/src/services/claimService.js')
   // Module 1 now issues through the API; this module still reads the mock register.
   policies = await loadMockPolicyRegister(harness)
-  premiums = await harness.load('/src/services/premiumService.js')
+  premiums = await harness.load('/src/services/mockPremiumLedger.js')
   dates = await harness.load('/src/utils/dateUtils.js')
 })
 

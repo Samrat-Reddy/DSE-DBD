@@ -36,7 +36,7 @@ before(async () => {
   harness = await createHarness()
   AppRoutes = (await harness.load('/src/routes/AppRoutes.jsx')).default
   premium = await harness.load('/src/components/premium/index.js')
-  premiumService = await harness.load('/src/services/premiumService.js')
+  premiumService = await harness.load('/src/services/mockPremiumLedger.js')
   pages = await harness.load('/src/pages/index.js')
 
   lifeAccount = await premiumService.getPremiumScheduleByPolicyId(LIFE, { asOf: AS_OF })
@@ -214,12 +214,12 @@ describe('payment history, details and results', () => {
     assert.ok(html.includes('/payments/history/PAY-2024-000102'))
   })
 
-  test('successful payment details show the successful state and mock disclaimer', async () => {
+  test('successful payment details show the successful state and demonstration disclaimer', async () => {
     const record = await premiumService.getPaymentById('PAY-2024-000102', { asOf: AS_OF })
     const html = renderInRouter(h(premium.PaymentDetailsPanel, record))
     assert.match(html, /Successful payment/)
     assert.match(html, /MOCKTXN-2XK8PL5N7V/)
-    assert.match(html, /Mock payment record/)
+    assert.match(html, /Demonstration payment record/)
   })
 
   test('failed payment details show the reason', async () => {
@@ -246,7 +246,7 @@ describe('payment history, details and results', () => {
       account: { summary: { ...paAccount.summary, totalPaid: 6200, outstanding: 0, payableNow: 0 } },
     }
     const html = renderInRouter(h(premium.PaymentResult, { result, onRetry: () => {} }))
-    assert.match(html, /Mock payment successful/)
+    assert.match(html, /Payment recorded/)
     assert.match(html, /PAY-2026-000999/)
     assert.match(html, /MOCKTXN-ABCDEFGHJK/)
     assert.match(html, /Updated financial position/)
@@ -262,7 +262,7 @@ describe('payment history, details and results', () => {
       account: { summary: paAccount.summary },
     }
     const html = renderInRouter(h(premium.PaymentResult, { result, onRetry: () => {} }))
-    assert.match(html, /Mock payment declined/)
+    assert.match(html, /Payment declined/)
     assert.match(html, /Try again/)
     assert.doesNotMatch(html, /Updated financial position/)
   })
@@ -273,7 +273,7 @@ describe('payment flow', () => {
     const html = renderInRouter(
       h(premium.PaymentFlow, { account: lifeAccount, initialInstallmentId: 'INS-2024-000226-010' }),
     )
-    assert.match(html, /aria-label="Mock payment progress"/)
+    assert.match(html, /aria-label="Payment progress"/)
     assert.match(html, /Payable instalments for POL-2024-000226/)
     assert.equal(countOccurrences(html, 'type="radio"'), 2)
     assert.match(html, /checked="" value="INS-2024-000226-010"/)

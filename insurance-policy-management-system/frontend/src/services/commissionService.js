@@ -25,7 +25,7 @@
 
 import { ApiError } from './apiClient'
 import { findPolicyById, getAllPolicies } from './mockPolicyStore'
-import { getPaymentRecords, getPremiumScheduleHeader } from './premiumService'
+import { getPaymentRecords, getPremiumScheduleHeader } from './mockPremiumLedger'
 import {
   addCommission,
   addCommissionEvents,

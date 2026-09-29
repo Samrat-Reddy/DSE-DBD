@@ -24,7 +24,7 @@ import { ApiError } from './apiClient'
 import { claimTypes } from '../data/claimTypes'
 import { policyProducts } from '../data/policyProducts'
 import { findPolicyById, getAllPolicies } from './mockPolicyStore'
-import { getPremiumAccountSnapshot } from './premiumService'
+import { getPremiumAccountSnapshot } from './mockPremiumLedger'
 import {
   findClaimById,
   generateClaimId,

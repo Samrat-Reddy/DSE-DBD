@@ -10,8 +10,13 @@ FastAPI + SQLAlchemy 2.x + MySQL 8. Implemented so far:
   and policies in MySQL. The API handles the catalog, the scoped policy register
   and transactional issuance, and the frontend's Module 1 screens use it.
 
-Modules 2–6 (premiums, claims, renewals, commissions, MIS reports) are not on the
-backend yet. Their frontend screens still use mock data.
+- **Module 2, Premium Schedule & Payments:** a premium schedule and instalments
+  for every issued policy (created in the issuance transaction), transactional
+  payment recording with row locking and duplicate protection. The frontend's
+  Module 2 screens use it.
+
+Modules 3–6 (claims, renewals, commissions, MIS reports) are not on the backend
+yet. Their frontend screens still use mock data.
 
 ## Architecture
 
@@ -43,8 +48,8 @@ MySQL 8  ◄── schema managed by Alembic, inspected with MySQL Workbench
 | `app/services/` | `auth.py`, `users.py`, `catalog.py`, `policies.py` (scope + issuance), `pricing.py` |
 | `app/api/deps.py` | `get_current_user`, `CurrentUser`, `require_role`, `require_any_role` |
 | `app/api/routes/` | `health.py`, `auth.py`, `users.py`, `products.py`, `policies.py` |
-| `app/scripts/` | `seed_dev_users.py`, `seed_dev_data.py` (+ `seed_data/module1.json`) |
-| `alembic/` | Migrations: `0001_baseline` (empty), `0002_roles_users`, `0003_policy_catalog` |
+| `app/scripts/` | `seed_dev_users.py`, `seed_dev_data.py` (+ `seed_data/module1.json`, `module2.json`), `backfill_premium_schedules.py` |
+| `alembic/` | Migrations: `0001_baseline` (empty), `0002_roles_users`, `0003_policy_catalog`, `0004_premium_payments` |
 | `sql/create_database.sql` | One-off MySQL Workbench script: schemas + app user |
 | `tests/` | pytest: unit tests + real-MySQL integration tests |
 
@@ -124,9 +129,10 @@ python -m venv .venv
 pip install -r requirements-dev.txt     # requirements.txt alone for runtime only
 
 alembic upgrade head                    # applies 0001 → 0003
-alembic current                         # -> 0003_policy_catalog (head)
+alembic current                         # -> 0004_premium_payments (head)
 
-python -m app.scripts.seed_dev_data     # dev users + Module 1 demo data (see below)
+python -m app.scripts.seed_dev_data     # dev users + Module 1 and 2 demo data (see below)
+python -m app.scripts.backfill_premium_schedules  # any environment: schedules for pre-0004 policies
 ```
 
 - **`0002_roles_users`** creates `roles` and `users`, and inserts the three roles.
@@ -492,6 +498,126 @@ scope, in the service layer. The client can't widen it.
    SELECT * FROM id_sequences;
    ```
 
+## Module 2: Premium Schedule & Payments
+
+### Tables (migration `0004_premium_payments`)
+
+```
+policies 1 --- 0..1 premium_schedules   (uq_premium_schedules_policy_id: one per policy)
+premium_schedules 1 --- * installments  (unique on schedule+number and schedule+due_date)
+installments 1 --- * payments           (every FK RESTRICT: financial history is never cascaded away)
+users 1 --- * payments                  (recorded_by_user_id)
+```
+
+- **`premium_schedules`** stores only what it adds to the policy: `installment_count`
+  and `total_premium` (annual premium × term). Frequency, term, start date and
+  annual premium stay on `policies`.
+- **`installments`**: `installment_number`, `due_date`, `amount_due`, `amount_paid`
+  and `status`.
+- **`payments`**: `payment_number` (server-generated `PAY-YYYY-NNNNNN`),
+  `payment_reference` (supplied by the payer, UNIQUE), `amount`, `status`,
+  `payment_method`, `paid_at` (UTC), `failure_reason` and `recorded_by_user_id`.
+
+### Rules enforced by MySQL
+
+| Constraint | Enforces |
+| --- | --- |
+| `ck_installments_amount_paid_within_due` | `0 <= amount_paid <= amount_due`: an instalment can never be overpaid |
+| `ck_installments_status_matches_amount` | `pending` = nothing paid; `partially_paid` = `0 < paid < due`; `paid` = `paid = due` |
+| `ck_installments_status_allowed` | Only `pending`, `partially_paid` or `paid` is stored |
+| `uq_payments_payment_reference` | A payment attempt can be recorded only once (duplicate protection) |
+| `ck_payments_failure_reason_for_failed` | A failure reason exactly on failed payments |
+| `ck_payments_status_allowed`, `ck_payments_method_allowed` | Controlled values (binary collation) |
+
+- **`overdue` is never stored.** It depends on today's date, which a MySQL CHECK
+  can't use, and a stored value would go stale. The API reports it: anything not
+  fully paid whose due date has passed is `overdue`.
+- **Payment immutability.** After insert, a payment's instalment, amount, number
+  and reference can't change; only a `pending` status may settle. The `Payment`
+  model enforces this rather than a trigger: `CREATE TRIGGER` needs SUPER while
+  binary logging is on (MySQL error 1419), which the app account must not have.
+
+### Money
+
+- `regular = (annual × term) / count`, rounded **down** to the paisa.
+- The **final instalment** absorbs the remainder (0 to count−1 paise).
+- The instalments therefore always sum exactly to `annual × term`. For example,
+  ₹18,500 a year paid monthly is 11 × ₹1,541.66 plus ₹1,541.74.
+- Due dates run every 12 ÷ (instalments per year) months from the start date,
+  with end-of-month clamping (31 Jan → 28/29 Feb).
+- The policy's displayed `instalment_premium` (Module 1) is the regular instalment.
+
+### Recording a payment (`services/premiums.py::record_payment`)
+
+```
+SELECT installment ... FOR UPDATE      (locking read: always the latest committed row)
+-> SELECT pending payments ... FOR UPDATE
+-> validate: amount > 0 and <= remaining balance; not already paid; no pending payment;
+   payable window open (from 30 days before the due date)
+-> INSERT payment -> UPDATE amount_paid / status (successful payments only) -> COMMIT
+```
+
+- **Concurrency:** concurrent payments on one instalment queue on the row lock. The
+  tests pay one instalment from two sessions at once: exactly one succeeds.
+- **Rollback:** any failure rolls back the payment row, the balance and the
+  payment-number counter.
+- **Outcomes:** `outcome` is `successful`, `failed` or `pending`. There's no gateway
+  yet, so the payer states it. Failed and pending attempts never move money.
+- **Pending payments:** a pending payment blocks new payments until an administrator
+  settles it with `PATCH /payments/{number}`. Successful and failed are final.
+
+### Endpoints
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /api/v1/premium-schedules` | Accounts in scope: `search`, `standing` (`overdue`/`due`/`up_to_date`/`fully_paid`), `sort`, `limit`/`offset`; plus portfolio totals |
+| `GET /api/v1/policies/{policy_number}/premium-schedule` | Schedule + financial summary (409 if the policy isn't issued yet) |
+| `GET /api/v1/policies/{policy_number}/installments` | Instalments with status, balance, `payable`, pending/failed attempts |
+| `GET /api/v1/installments/{id}` | One instalment |
+| `GET /api/v1/installments/{id}/payments` | Its payment attempts |
+| `POST /api/v1/installments/{id}/payments` | Record a payment: `amount`, `payment_method`, `payment_reference`, `outcome` |
+| `GET /api/v1/payments` | Payment history: `search`, `status`, `method`, `policy_number`, `sort`, paging; plus a scope-wide summary |
+| `GET /api/v1/payments/{payment_number}` | One payment |
+| `PATCH /api/v1/payments/{payment_number}` | Settle a pending payment (administrators) |
+
+### Authorization
+
+| Role | Read schedules / instalments / payments | Record a payment | Settle pending |
+| --- | --- | --- | --- |
+| administrator | everything | yes | yes |
+| agent | policies they service | **no (403)** | no (403) |
+| policyholder | own policies | own instalments only | no (403) |
+| login without a linked record | nothing | no (404) | no (403) |
+
+Anything outside the caller's scope is 404, as in Module 1.
+
+### Backfill
+
+Policies issued before migration 0004 have no schedule. Run
+`python -m app.scripts.backfill_premium_schedules` once; it is idempotent and runs
+in one transaction. `seed_dev_data` also runs it. New policies always get their
+schedule in the issuance transaction.
+
+### Verify in MySQL Workbench
+
+```sql
+-- The ledger invariant: every balance equals its successful payments (expect 0 rows).
+SELECT i.id, i.amount_paid, COALESCE(SUM(p.amount), 0) AS successful
+FROM installments i LEFT JOIN payments p ON p.installment_id = i.id AND p.status = 'successful'
+GROUP BY i.id, i.amount_paid HAVING i.amount_paid <> successful;
+
+-- Every schedule sums to annual premium x term (expect 0 rows).
+SELECT s.id FROM premium_schedules s JOIN policies p ON p.id = s.policy_id
+JOIN (SELECT schedule_id, SUM(amount_due) due FROM installments GROUP BY schedule_id) i
+  ON i.schedule_id = s.id
+WHERE i.due <> s.total_premium OR s.total_premium <> p.annual_premium * p.term_years;
+
+-- One policy's account.
+SELECT installment_number, due_date, amount_due, amount_paid, status FROM installments
+WHERE schedule_id = (SELECT s.id FROM premium_schedules s JOIN policies p ON p.id = s.policy_id
+                     WHERE p.policy_number = 'POL-2024-000519') ORDER BY installment_number;
+```
+
 ## MySQL Workbench usage
 
 - **Connect as the app user.** Click **+** next to *MySQL Connections* and fill in:
@@ -644,8 +770,13 @@ See `.env.example`. Every variable maps to a field on `Settings` (case-insensiti
 
 ## Known limitations
 
-- **Modules 2–6 aren't on the backend yet.** Policies issued through the API
-  don't appear in their (still mock) screens.
+- **Modules 3–6 aren't on the backend yet.** They still read the frontend's
+  frozen mock ledgers, so policies issued and payments recorded through the API
+  don't appear in claims, renewals, commissions or MIS until those modules migrate.
+- **No payment gateway.** The payer states a payment's outcome; no money moves.
+- **Payment immutability is enforced by the ORM model, not a trigger.** A
+  trigger needs SUPER under binary logging. To add one, a DBA must enable
+  `log_bin_trust_function_creators` first.
 - **Policy status isn't time-driven yet.** Statuses are stored, so a seeded
   policy past its end date stays `active` until the renewals module adds expiry
   processing.

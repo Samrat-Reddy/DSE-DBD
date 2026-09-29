@@ -24,7 +24,7 @@
 
 import { ApiError } from './apiClient'
 import { findPolicyById, getAllPolicies } from './mockPolicyStore'
-import { getPremiumAccountSnapshot } from './premiumService'
+import { getPremiumAccountSnapshot } from './mockPremiumLedger'
 import {
   addReminders,
   createReminderIdGenerator,

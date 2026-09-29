@@ -5,11 +5,12 @@ match `frontend/src/utils/constants.js`; the frontend service maps codes to
 labels, and the backend uses the labels only for catalog text search.
 """
 
+from collections.abc import Iterable
 from enum import StrEnum
 
 
-def sql_in(column: str, values: type[StrEnum]) -> str:
-    """CHECK constraint body restricting `column` to the enum's values."""
+def sql_in(column: str, values: Iterable[StrEnum]) -> str:
+    """CHECK constraint body restricting `column` to the given enum values."""
     return f"{column} IN ({', '.join(repr(v.value) for v in values)})"
 
 
@@ -76,3 +77,41 @@ class NomineeRelationship(StrEnum):
     BROTHER = "Brother"
     SISTER = "Sister"
     OTHER = "Other"
+
+
+class InstallmentStatus(StrEnum):
+    """Payment state of an instalment.
+
+    PENDING, PARTIALLY_PAID and PAID are stored, and a CHECK ties each one to
+    amount_paid. OVERDUE is never stored: it depends on today's date (which a
+    MySQL CHECK cannot use) and would go stale. It is derived when read:
+    anything not fully paid whose due date has passed is overdue.
+    """
+
+    PENDING = "pending"
+    PARTIALLY_PAID = "partially_paid"
+    PAID = "paid"
+    OVERDUE = "overdue"
+
+
+STORED_INSTALLMENT_STATUSES = (
+    InstallmentStatus.PENDING,
+    InstallmentStatus.PARTIALLY_PAID,
+    InstallmentStatus.PAID,
+)
+
+
+class PaymentStatus(StrEnum):
+    """PENDING -> SUCCESSFUL | FAILED. Successful and failed are final."""
+
+    PENDING = "pending"
+    SUCCESSFUL = "successful"
+    FAILED = "failed"
+
+
+class PaymentMethod(StrEnum):
+    """Labels on recorded payments (no card/bank details are ever stored)."""
+
+    UPI = "upi"
+    CARD = "card"
+    NET_BANKING = "net_banking"

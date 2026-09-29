@@ -7,7 +7,11 @@ import MockNotice from './MockNotice'
 import PaymentMethodSelector from './PaymentMethodSelector'
 import PaymentResult from './PaymentResult'
 import PaymentSummaryPanel from './PaymentSummaryPanel'
-import { MOCK_PAYMENT_OUTCOMES, recordMockPayment } from '../../services/premiumService'
+import {
+  createPaymentReference,
+  PAYMENT_OUTCOMES,
+  recordPayment,
+} from '../../services/premiumService'
 import { getPayableInstallments } from '../../utils/premiumCalculations'
 import { validatePaymentRequest } from '../../utils/paymentValidation'
 import { INSTALLMENT_STATUS, PAYMENT_METHOD_LABELS } from '../../utils/constants'
@@ -33,19 +37,24 @@ const STEP_ERROR_FIELD = {
 const plural = (count, singular) => `${count} ${count === 1 ? singular : `${singular}s`}`
 
 /**
- * Mock premium payment workflow.
+ * Premium payment workflow.
  *
  * Owns wizard state only. Payability and request rules come from
- * `paymentValidation`, and the payment is recorded through `premiumService`,
- * which re-validates, so a bypassed or double-clicked confirm cannot record a
- * duplicate payment.
+ * `paymentValidation`; the payment is recorded through `premiumService`, and
+ * the backend re-validates everything against MySQL (locked instalment row,
+ * remaining balance). Each attempt carries a payment reference that is reused
+ * only when the identical attempt is retried, so a double-click or a retry
+ * after a lost response cannot record the payment twice (the backend rejects
+ * a repeated reference with 409).
  */
 const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => {
   const [step, setStep] = useState(SELECT_STEP)
   const [furthestStep, setFurthestStep] = useState(SELECT_STEP)
   const [selectedId, setSelectedId] = useState(initialInstallmentId)
   const [method, setMethod] = useState('')
-  const [outcome, setOutcome] = useState(MOCK_PAYMENT_OUTCOMES.APPROVE)
+  const [outcome, setOutcome] = useState(PAYMENT_OUTCOMES.APPROVE)
+  // null = pay the full remaining balance of the selected instalment.
+  const [amountInput, setAmountInput] = useState(null)
   const [revealedErrors, setRevealedErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
@@ -54,6 +63,7 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
   const headingRef = useRef(null)
   const hasMountedRef = useRef(false)
   const submittingRef = useRef(false)
+  const attemptRef = useRef(null) // { key, reference }
   const baseId = useId()
 
   const payable = useMemo(
@@ -66,9 +76,12 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
     [account.installments, selectedId],
   )
 
+  const payAmount = amountInput ?? String(selected?.outstanding ?? selected?.amount ?? '')
+
   const errors = useMemo(
-    () => validatePaymentRequest({ installment: selected, amount: selected?.amount, method }),
-    [selected, method],
+    () =>
+      validatePaymentRequest({ installment: selected, amount: payAmount, method, allowPartial: true }),
+    [selected, payAmount, method],
   )
 
   // Move focus to the new step heading so keyboard and screen reader users
@@ -90,6 +103,7 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
   const handleSelect = useCallback(
     (installmentId) => {
       setSelectedId(installmentId)
+      setAmountInput(null)
       onInstallmentChange?.(installmentId)
     },
     [onInstallmentChange],
@@ -116,14 +130,22 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
     setIsSubmitting(true)
     setSubmitError(null)
 
+    // Same details as the previous (failed) submission = the same attempt.
+    const attemptKey = [selected.id, payAmount, method, outcome].join('|')
+    if (attemptRef.current?.key !== attemptKey) {
+      attemptRef.current = { key: attemptKey, reference: createPaymentReference() }
+    }
+
     try {
-      const response = await recordMockPayment({
-        policyId: account.policyId,
-        installmentId: selected.installmentId,
-        amount: selected.amount,
+      const response = await recordPayment({
+        installment: selected,
+        amount: payAmount,
         method,
         outcome,
+        reference: attemptRef.current.reference,
+        account,
       })
+      attemptRef.current = null
       setResult(response)
     } catch (error) {
       setSubmitError(error)
@@ -131,11 +153,12 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
       submittingRef.current = false
       setIsSubmitting(false)
     }
-  }, [account.policyId, errors, method, outcome, selected])
+  }, [account, errors, method, outcome, payAmount, selected])
 
   const handleRetry = useCallback(() => {
     setResult(null)
-    setOutcome(MOCK_PAYMENT_OUTCOMES.APPROVE)
+    setOutcome(PAYMENT_OUTCOMES.APPROVE)
+    setAmountInput(null)
     setStep(METHOD_STEP)
   }, [])
 
@@ -156,7 +179,7 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
         furthestStep={furthestStep}
         onStepSelect={goToStep}
         locked={isSubmitting}
-        label="Mock payment progress"
+        label="Payment progress"
       />
 
       <div className="payment-flow__layout">
@@ -220,7 +243,7 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
                         </span>
                         <span className="installment-option__side">
                           <strong className="installment-option__amount">
-                            {formatCurrency(installment.amount)}
+                            {formatCurrency(installment.outstanding ?? installment.amount)}
                           </strong>
                           <StatusBadge status={installment.status} />
                         </span>
@@ -261,15 +284,36 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
 
                 {submitError && (
                   <div className="payment-flow__error-summary" role="alert">
-                    <h3 className="payment-flow__error-title">The mock payment was not recorded</h3>
+                    <h3 className="payment-flow__error-title">The payment was not recorded</h3>
                     <p>{submitError.message}</p>
                   </div>
                 )}
 
                 <div className="payment-review__amount">
-                  <span>You are confirming a mock payment of</span>
-                  <strong>{formatCurrency(selected.amount)}</strong>
+                  <span>You are confirming a payment of</span>
+                  <strong>{formatCurrency(Number(payAmount) || 0)}</strong>
                 </div>
+
+                <label className="payment-review__amount-field" htmlFor={`${baseId}-amount`}>
+                  <span>Amount to pay</span>
+                  <input
+                    id={`${baseId}-amount`}
+                    name="amount"
+                    type="number"
+                    inputMode="decimal"
+                    min="0.01"
+                    step="0.01"
+                    max={selected.outstanding ?? selected.amount}
+                    value={payAmount}
+                    onChange={(event) => setAmountInput(event.target.value)}
+                    aria-describedby={`${baseId}-amount-hint`}
+                  />
+                  <small id={`${baseId}-amount-hint`}>
+                    Remaining on this instalment:{' '}
+                    {formatCurrency(selected.outstanding ?? selected.amount)}. A smaller amount
+                    records a part payment.
+                  </small>
+                </label>
 
                 <DataList
                   columns={2}
@@ -297,19 +341,19 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
                 />
 
                 <fieldset className="outcome-picker">
-                  <legend className="outcome-picker__legend">Mock outcome (demonstration only)</legend>
+                  <legend className="outcome-picker__legend">Payment outcome</legend>
                   <p className="outcome-picker__hint">
-                    Choose how the simulated payment should resolve, so both results can be
-                    demonstrated.
+                    No payment gateway is connected yet, so state how this attempt resolved. A
+                    failed attempt is recorded but does not reduce the balance.
                   </p>
                   <div className="outcome-picker__options">
                     <label className="outcome-option">
                       <input
                         type="radio"
                         name={`${baseId}-outcome`}
-                        value={MOCK_PAYMENT_OUTCOMES.APPROVE}
-                        checked={outcome === MOCK_PAYMENT_OUTCOMES.APPROVE}
-                        onChange={() => setOutcome(MOCK_PAYMENT_OUTCOMES.APPROVE)}
+                        value={PAYMENT_OUTCOMES.APPROVE}
+                        checked={outcome === PAYMENT_OUTCOMES.APPROVE}
+                        onChange={() => setOutcome(PAYMENT_OUTCOMES.APPROVE)}
                       />
                       Approve — record a successful payment
                     </label>
@@ -317,9 +361,9 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
                       <input
                         type="radio"
                         name={`${baseId}-outcome`}
-                        value={MOCK_PAYMENT_OUTCOMES.DECLINE}
-                        checked={outcome === MOCK_PAYMENT_OUTCOMES.DECLINE}
-                        onChange={() => setOutcome(MOCK_PAYMENT_OUTCOMES.DECLINE)}
+                        value={PAYMENT_OUTCOMES.DECLINE}
+                        checked={outcome === PAYMENT_OUTCOMES.DECLINE}
+                        onChange={() => setOutcome(PAYMENT_OUTCOMES.DECLINE)}
                       />
                       Decline — record a failed attempt
                     </label>
@@ -346,7 +390,7 @@ const PaymentFlow = ({ account, initialInstallmentId, onInstallmentChange }) => 
               </Button>
             ) : (
               <Button size="lg" onClick={handleConfirm} disabled={isSubmitting}>
-                {isSubmitting ? 'Recording mock payment…' : 'Confirm Mock Payment'}
+                {isSubmitting ? 'Recording payment…' : 'Confirm Payment'}
               </Button>
             )}
           </footer>

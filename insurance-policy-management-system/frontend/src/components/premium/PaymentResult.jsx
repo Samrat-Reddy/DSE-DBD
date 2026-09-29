@@ -5,6 +5,7 @@ import MockNotice from './MockNotice'
 import {
   buildPaymentDetailsPath,
   buildPolicyPremiumsPath,
+  INSTALLMENT_STATUS,
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS,
   ROUTES,
@@ -13,7 +14,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters'
 import './PaymentResult.css'
 
 /**
- * Outcome of a mock payment: success or failure.
+ * Outcome of a recorded payment attempt: success or failure.
  *
  * The payment ID and transaction reference get the most visual weight. On
  * success the before/after balances show the financial effect immediately.
@@ -21,6 +22,8 @@ import './PaymentResult.css'
 const PaymentResult = ({ result, onRetry }) => {
   const { payment, installment, account, previousSummary } = result
   const succeeded = payment.status === PAYMENT_STATUS.SUCCESS
+  const fullyPaid = installment.status === INSTALLMENT_STATUS.PAID
+  const outstanding = installment.outstanding ?? 0
 
   return (
     <div className={`payment-result payment-result--${payment.status}`}>
@@ -30,12 +33,14 @@ const PaymentResult = ({ result, onRetry }) => {
         </span>
         <div>
           <h2 className="payment-result__title" tabIndex={-1}>
-            {succeeded ? 'Mock payment successful' : 'Mock payment declined'}
+            {succeeded ? 'Payment recorded' : 'Payment declined'}
           </h2>
           <p className="payment-result__subtitle">
-            {succeeded
-              ? `Instalment ${installment.installmentNumber} is now marked as paid.`
-              : `Instalment ${installment.installmentNumber} remains unpaid. You can try again.`}
+            {!succeeded
+              ? `Instalment ${installment.installmentNumber} remains unpaid. You can try again.`
+              : fullyPaid
+                ? `Instalment ${installment.installmentNumber} is now marked as paid.`
+                : `Part payment applied. ${formatCurrency(outstanding)} is still outstanding on instalment ${installment.installmentNumber}.`}
           </p>
         </div>
       </div>
@@ -123,7 +128,7 @@ const PaymentResult = ({ result, onRetry }) => {
       )}
 
       <MockNotice title="No real transaction took place">
-        This payment was simulated in the browser. No money moved and no payment provider was
+        This payment was recorded in the database for demonstration. No money moved and no payment provider was
         contacted.
       </MockNotice>
 

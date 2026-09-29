@@ -16,11 +16,16 @@ export const ENDPOINTS = {
   policies: '/policies',
   policyById: (policyNumber) => `/policies/${encodeURIComponent(policyNumber)}`,
 
-  // Module 2 — Premium Schedule & Payments
+  // Module 2 — Premium Schedule & Payments (live FastAPI endpoints)
   premiumSchedules: '/premium-schedules',
-  premiumScheduleByPolicyId: (policyId) => `/policies/${policyId}/premium-schedule`,
+  premiumScheduleByPolicyId: (policyNumber) =>
+    `/policies/${encodeURIComponent(policyNumber)}/premium-schedule`,
+  policyInstallments: (policyNumber) => `/policies/${encodeURIComponent(policyNumber)}/installments`,
+  installmentById: (installmentId) => `/installments/${encodeURIComponent(installmentId)}`,
+  installmentPayments: (installmentId) =>
+    `/installments/${encodeURIComponent(installmentId)}/payments`,
   payments: '/payments',
-  paymentById: (paymentId) => `/payments/${paymentId}`,
+  paymentById: (paymentNumber) => `/payments/${encodeURIComponent(paymentNumber)}`,
 
   // Module 3 — Claim Filing & Approval Workflow
   claims: '/claims',

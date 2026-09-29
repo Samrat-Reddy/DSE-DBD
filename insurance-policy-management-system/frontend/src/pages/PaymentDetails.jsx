@@ -2,14 +2,15 @@ import { useParams } from 'react-router-dom'
 import { Button, ErrorState, LoadingState, PageHeader } from '../components/common'
 import { PaymentDetailsPanel } from '../components/premium'
 import { getPaymentById } from '../services/premiumService'
-import { useAsync } from '../hooks'
+import { useAsync, useDemoRole } from '../hooks'
 import { buildPolicyPremiumsPath, ROUTES } from '../utils/constants'
 import './Premiums.css'
 
 /** One payment record, and the instalment it was applied to. */
 const PaymentDetails = () => {
   const { paymentId } = useParams()
-  const record = useAsync(() => getPaymentById(paymentId), [paymentId])
+  const { role } = useDemoRole()
+  const record = useAsync(() => getPaymentById(paymentId), [paymentId, role])
 
   const breadcrumbs = [
     { label: 'Premiums & payments', to: ROUTES.PREMIUMS },
@@ -52,7 +53,7 @@ const PaymentDetails = () => {
         breadcrumbs={breadcrumbs}
         eyebrow="Payment record"
         title={payment.paymentId}
-        description={`Mock payment for instalment ${payment.installmentNumber ?? '—'} of policy ${payment.policyId}.`}
+        description={`Payment for instalment ${payment.installmentNumber ?? '—'} of policy ${payment.policyId}.`}
         actions={
           <>
             {policy && (

@@ -31,6 +31,9 @@ const StatusNote = ({ installment }) => {
         : `Due in ${plural(installment.daysUntilDue, 'day')}`,
     )
   }
+  if (installment.isPartiallyPaid) {
+    notes.push(`${formatCurrency(installment.amountPaid)} paid, ${formatCurrency(installment.outstanding)} left`)
+  }
   if (installment.pendingPaymentId) {
     notes.push('Payment pending')
   }

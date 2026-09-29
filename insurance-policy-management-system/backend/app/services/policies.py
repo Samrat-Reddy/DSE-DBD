@@ -15,7 +15,6 @@ answering 403 would confirm which numbers exist to anyone who probes them.
 """
 
 import logging
-from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy.exc import IntegrityError
@@ -48,6 +47,8 @@ from app.schemas.policies import (
     PolicyOut,
     ProductRefOut,
 )
+from app.services.access import PolicyScope, resolve_scope  # noqa: F401 (re-exported)
+from app.services.premiums import create_schedule
 from app.services.pricing import instalment_premium, rate_annual_premium
 
 logger = logging.getLogger(__name__)
@@ -56,38 +57,7 @@ MYSQL_DUPLICATE_ENTRY = 1062
 DUPLICATE_PROPOSAL_KEY = "uq_policies_customer_id_product_id_start_date"
 
 
-# --- scope ------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class PolicyScope:
-    everything: bool = False
-    agent: Agent | None = None
-    customer: Customer | None = None
-
-    def allows(self, policy: Policy) -> bool:
-        if self.everything:
-            return True
-        if self.agent is not None:
-            return policy.agent_id == self.agent.id
-        if self.customer is not None:
-            return policy.customer_id == self.customer.id
-        return False
-
-    @property
-    def sees_nothing(self) -> bool:
-        return not self.everything and self.agent is None and self.customer is None
-
-
-def resolve_scope(db: Session, user: User) -> PolicyScope:
-    role = user.role.name
-    if role == RoleName.ADMINISTRATOR:
-        return PolicyScope(everything=True)
-    if role == RoleName.AGENT:
-        return PolicyScope(agent=policy_repo.get_agent_by_user_id(db, user.id))
-    if role == RoleName.POLICYHOLDER:
-        return PolicyScope(customer=policy_repo.get_customer_by_user_id(db, user.id))
-    return PolicyScope()
+# Scope lives in app.services.access (shared with Module 2); re-exported here.
 
 
 # --- responses --------------------------------------------------------------
@@ -291,8 +261,9 @@ def issue_policy(db: Session, user: User, payload: PolicyIssueRequest) -> Policy
     """Validate, rate, number and create a policy in ONE transaction.
 
     product -> business rules -> agent -> customer (existing or new)
-    -> premium -> policy number -> insert -> COMMIT. Any failure rolls back
-    everything, including a newly created customer and the sequence counters.
+    -> premium -> policy number -> insert policy + premium schedule -> COMMIT.
+    Any failure rolls back everything, including a newly created customer,
+    the schedule and its instalments, and the sequence counters.
     """
     if user.role.name not in (RoleName.AGENT, RoleName.ADMINISTRATOR):
         raise ForbiddenError("Only agents and administrators can issue policies.")
@@ -363,6 +334,9 @@ def issue_policy(db: Session, user: User, payload: PolicyIssueRequest) -> Policy
             nominee_date_of_birth=payload.nominee.date_of_birth,
         )
         db.add(policy)
+        # Module 2 invariant: an issued policy never exists without its
+        # premium schedule, so both are created in this same transaction.
+        create_schedule(db, policy)
         db.commit()
     except IntegrityError as exc:
         db.rollback()

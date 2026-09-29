@@ -34,13 +34,14 @@ def test_annual_premium_scales_with_coverage(coverage, annual):
 @pytest.mark.parametrize(
     ("annual", "frequency", "instalment"),
     [
-        ("27750", PremiumFrequency.MONTHLY, "2313"),  # 2312.5 rounds half-up, like Math.round
-        ("18600", PremiumFrequency.QUARTERLY, "4650"),
-        ("3100", PremiumFrequency.HALF_YEARLY, "1550"),
-        ("18500", PremiumFrequency.ANNUAL, "18500"),
+        ("27750", PremiumFrequency.MONTHLY, "2312.50"),  # exact to the paisa
+        ("18500", PremiumFrequency.MONTHLY, "1541.66"),  # 1541.666... rounded DOWN
+        ("18600", PremiumFrequency.QUARTERLY, "4650.00"),
+        ("3100", PremiumFrequency.HALF_YEARLY, "1550.00"),
+        ("18500", PremiumFrequency.ANNUAL, "18500.00"),
     ],
 )
-def test_instalment_premium_rounds_half_up(annual, frequency, instalment):
+def test_instalment_premium_is_the_schedules_regular_instalment(annual, frequency, instalment):
     assert instalment_premium(Decimal(annual), frequency) == Decimal(instalment)
 
 

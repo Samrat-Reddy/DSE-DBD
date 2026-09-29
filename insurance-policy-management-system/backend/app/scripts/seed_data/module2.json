@@ -1,0 +1,159 @@
+{
+  "_source": "Generated from frontend/src/data/payments.js (illustrative demo data; MOCKTXN references are not real).",
+  "payments": [
+    {
+      "payment_number": "PAY-2023-000212",
+      "payment_reference": "MOCKTXN-4QH7ZK2M8D",
+      "policy_number": "POL-2023-000874",
+      "installment_number": 1,
+      "amount": 8400,
+      "status": "successful",
+      "payment_method": "card",
+      "paid_at": "2023-09-14T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2024-000101",
+      "payment_reference": "MOCKTXN-9B3TR6WJ1C",
+      "policy_number": "POL-2024-000148",
+      "installment_number": 1,
+      "amount": 18500,
+      "status": "successful",
+      "payment_method": "upi",
+      "paid_at": "2024-04-12T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2024-000102",
+      "payment_reference": "MOCKTXN-2XK8PL5N7V",
+      "policy_number": "POL-2024-000226",
+      "installment_number": 1,
+      "amount": 4650,
+      "status": "successful",
+      "payment_method": "net_banking",
+      "paid_at": "2024-07-02T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2024-000118",
+      "payment_reference": "MOCKTXN-6MW2QJ9R4T",
+      "policy_number": "POL-2024-000226",
+      "installment_number": 2,
+      "amount": 4650,
+      "status": "successful",
+      "payment_method": "net_banking",
+      "paid_at": "2024-10-03T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2024-000131",
+      "payment_reference": "MOCKTXN-8DF4HN1K6Z",
+      "policy_number": "POL-2024-000519",
+      "installment_number": 1,
+      "amount": 1550,
+      "status": "successful",
+      "payment_method": "upi",
+      "paid_at": "2024-11-08T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2025-000007",
+      "payment_reference": "MOCKTXN-3VJ7BT2P9Q",
+      "policy_number": "POL-2024-000226",
+      "installment_number": 3,
+      "amount": 4650,
+      "status": "successful",
+      "payment_method": "card",
+      "paid_at": "2025-01-04T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2025-000041",
+      "payment_reference": "MOCKTXN-5RX9KM3W2H",
+      "policy_number": "POL-2024-000226",
+      "installment_number": 4,
+      "amount": 4650,
+      "status": "successful",
+      "payment_method": "net_banking",
+      "paid_at": "2025-04-02T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2025-000058",
+      "payment_reference": "MOCKTXN-1TG6ZC8L4N",
+      "policy_number": "POL-2024-000519",
+      "installment_number": 2,
+      "amount": 1550,
+      "status": "successful",
+      "payment_method": "upi",
+      "paid_at": "2025-05-09T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2025-000083",
+      "payment_reference": "MOCKTXN-7PL3DQ5X8B",
+      "policy_number": "POL-2024-000226",
+      "installment_number": 5,
+      "amount": 4650,
+      "status": "successful",
+      "payment_method": "upi",
+      "paid_at": "2025-07-05T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2025-000121",
+      "payment_reference": "MOCKTXN-4HZ8WN2R6K",
+      "policy_number": "POL-2024-000226",
+      "installment_number": 6,
+      "amount": 4650,
+      "status": "successful",
+      "payment_method": "net_banking",
+      "paid_at": "2025-10-01T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2025-000134",
+      "payment_reference": "MOCKTXN-9KC2VB7M3J",
+      "policy_number": "POL-2024-000519",
+      "installment_number": 3,
+      "amount": 1550,
+      "status": "successful",
+      "payment_method": "card",
+      "paid_at": "2025-11-07T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2026-000004",
+      "payment_reference": "MOCKTXN-6BN1XT4Q9W",
+      "policy_number": "POL-2024-000226",
+      "installment_number": 7,
+      "amount": 4650,
+      "status": "successful",
+      "payment_method": "net_banking",
+      "paid_at": "2026-01-03T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2026-000036",
+      "payment_reference": "MOCKTXN-2QM5JR8D1Y",
+      "policy_number": "POL-2024-000226",
+      "installment_number": 8,
+      "amount": 4650,
+      "status": "successful",
+      "payment_method": "upi",
+      "paid_at": "2026-04-04T10:00:00",
+      "failure_reason": null
+    },
+    {
+      "payment_number": "PAY-2026-000079",
+      "payment_reference": "MOCKTXN-8WT3LK6F2P",
+      "policy_number": "POL-2024-000226",
+      "installment_number": 9,
+      "amount": 4650,
+      "status": "failed",
+      "payment_method": "card",
+      "paid_at": "2026-07-04T10:00:00",
+      "failure_reason": "Declined by issuing bank (simulated)."
+    }
+  ]
+}

@@ -32,8 +32,9 @@ import './Premiums.css'
  */
 const PolicyPremiumDetails = () => {
   const { policyId } = useParams()
-  const { canRecordPayment } = useDemoRole()
-  const account = useAsync(() => getPremiumScheduleByPolicyId(policyId), [policyId])
+  const { canRecordPayment, role } = useDemoRole()
+  // The role is part of the key: which accounts are visible depends on who asks.
+  const account = useAsync(() => getPremiumScheduleByPolicyId(policyId), [policyId, role])
 
   const breadcrumbs = [
     { label: 'Premiums & payments', to: ROUTES.PREMIUMS },
@@ -192,7 +193,7 @@ const PolicyPremiumDetails = () => {
         <SectionCard
           id="premium-payments"
           title="Payments for this policy"
-          description="Every mock payment attempt, newest first."
+          description="Every payment attempt, newest first."
           actions={
             <Button variant="ghost" size="sm" to={ROUTES.PAYMENT_HISTORY}>
               All payments

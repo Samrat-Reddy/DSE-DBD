@@ -14,7 +14,7 @@ const MockNotice = ({ title = 'Simulated payment', children }) => (
     <p className="mock-notice__text">
       <strong>{title}.</strong>{' '}
       {children ??
-        'This is a frontend demonstration. No money moves, and no bank, card or UPI provider is contacted.'}
+        'Payments are recorded in the database for demonstration. No money moves, and no bank, card or UPI provider is contacted.'}
     </p>
   </div>
 )

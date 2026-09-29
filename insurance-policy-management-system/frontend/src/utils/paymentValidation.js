@@ -72,13 +72,16 @@ export const checkInstallmentPayable = (installment) => {
 /**
  * Validate a complete payment request.
  *
- * Partial payments are not supported: the amount must equal the instalment
- * amount exactly.
+ * With `allowPartial` (the API-backed Module 2 flow) any amount up to the
+ * instalment's remaining balance is accepted, in paise. Without it (the legacy
+ * mock ledger still used by Modules 3–6) the amount must equal the instalment
+ * amount exactly. The backend enforces its own rules either way.
  *
- * @param {{installment: object|null, amount: number|string, method: string}} request
+ * @param {{installment: object|null, amount: number|string, method: string,
+ *          allowPartial?: boolean}} request
  * @returns {Record<string, string>} Field name to message; empty when valid.
  */
-export const validatePaymentRequest = ({ installment, amount, method }) => {
+export const validatePaymentRequest = ({ installment, amount, method, allowPartial = false }) => {
   const errors = {}
 
   const payability = checkInstallmentPayable(installment)
@@ -91,6 +94,15 @@ export const validatePaymentRequest = ({ installment, amount, method }) => {
     errors.amount = 'Payment amount is required.'
   } else if (numericAmount <= 0) {
     errors.amount = 'Payment amount must be greater than zero.'
+  } else if (allowPartial) {
+    const remaining = Number(installment?.outstanding ?? installment?.amount)
+    if (Math.round(numericAmount * 100) !== numericAmount * 100) {
+      errors.amount = 'Payment amount can have at most 2 decimal places.'
+    } else if (installment && numericAmount > remaining) {
+      errors.amount = `Payment amount cannot exceed the remaining balance of ${formatCurrency(
+        remaining,
+      )}.`
+    }
   } else if (installment && numericAmount !== Number(installment.amount)) {
     errors.amount = `Payment amount must equal the instalment amount of ${formatCurrency(
       installment.amount,

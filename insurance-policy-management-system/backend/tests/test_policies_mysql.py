@@ -105,7 +105,8 @@ def test_module1_tables_and_constraints_exist(mysql_engine: Engine):
         "policies",
         "id_sequences",
     } <= tables
-    assert not {"premium_schedules", "payments", "claims", "renewals", "commissions"} & tables
+    # Modules 3-5 do not exist yet (Module 2 tables do, from migration 0004).
+    assert not {"claims", "renewals", "commissions"} & tables
 
     fks = {fk["name"]: fk["referred_table"] for fk in inspector.get_foreign_keys("policies")}
     assert fks == {
@@ -439,9 +440,10 @@ def test_agent_issues_policy_for_new_customer(seeded, agent, holder, mysql_sessi
     assert body["policyholder"]["phone"] == "9886011223"
     assert body["policyholder"]["email"] == "kavya.rao@example.com"
     assert body["policyholder"]["address"]["line2"] is None
-    # Rated by the backend: 18,500 x 1.5 = 27,750 a year, 2,313 a month (half-up).
+    # Rated by the backend: 18,500 x 1.5 = 27,750 a year.
     assert body["annual_premium"] == "27750.00"
-    assert body["instalment_premium"] == "2313.00"
+    # 27,750 / 12 = 2,312.50 exactly: the regular instalment of the schedule.
+    assert body["instalment_premium"] == "2312.50"
     start = TODAY + timedelta(days=7)
     assert body["end_date"] == (start.replace(year=start.year + 2) - timedelta(days=1)).isoformat()
 
@@ -614,4 +616,4 @@ def test_column_collations_match_models(mysql_engine: Engine):
             ).all()
         )
     assert actual == expected
-    assert len(expected) == 12
+    assert len(expected) == 17  # 12 from Module 1, 5 from Module 2

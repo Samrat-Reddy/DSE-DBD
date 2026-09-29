@@ -16,17 +16,17 @@ const BANNERS = {
   [PAYMENT_STATUS.SUCCESS]: {
     icon: '✓',
     title: 'Successful payment',
-    text: 'This mock payment was recorded successfully and applied to the instalment below.',
+    text: 'This payment was recorded successfully and applied to the instalment below.',
   },
   [PAYMENT_STATUS.FAILED]: {
     icon: '×',
     title: 'Failed payment',
-    text: 'This mock payment attempt did not succeed. The instalment was not marked as paid.',
+    text: 'This payment attempt did not succeed. It did not reduce the instalment balance.',
   },
   [PAYMENT_STATUS.PENDING]: {
     icon: '…',
     title: 'Pending payment',
-    text: 'This mock payment is awaiting confirmation. The instalment cannot be paid again meanwhile.',
+    text: 'This payment is awaiting confirmation. The instalment cannot be paid again meanwhile.',
   },
 }
 
@@ -81,7 +81,7 @@ const PaymentDetailsPanel = ({ payment, installment, policy, isOrphaned = false 
           ]}
         />
         <div className="payment-details__notice">
-          <MockNotice title="Mock payment record">
+          <MockNotice title="Demonstration payment record">
             The transaction reference is generated for demonstration and does not correspond to
             any bank or payment gateway.
           </MockNotice>

@@ -10,7 +10,7 @@ import {
 } from '../components/common'
 import { PaymentHistoryList } from '../components/premium'
 import { getPayments } from '../services/premiumService'
-import { useAsync, useDebouncedValue } from '../hooks'
+import { useAsync, useDebouncedValue, useDemoRole } from '../hooks'
 import {
   DEFAULT_PAYMENT_QUERY,
   PAYMENT_METHOD_OPTIONS,
@@ -44,14 +44,16 @@ const SELECT_FIELDS = [
   { name: 'sort', label: 'Sort by', options: PAYMENT_SORT_OPTIONS },
 ]
 
-/** Every mock payment attempt, searchable and filterable. */
+/** Every payment attempt in the signed-in account's scope, searchable and filterable. */
 const PaymentHistory = () => {
+  const { role } = useDemoRole()
   const [query, setQuery] = useState(DEFAULT_PAYMENT_QUERY)
   const debouncedSearch = useDebouncedValue(query.search, 300)
 
+  // Keyed on the role: each demo role signs in as a different account and scope.
   const payments = useAsync(
     () => getPayments({ ...query, search: debouncedSearch }),
-    [debouncedSearch, query.status, query.method, query.sort],
+    [debouncedSearch, query.status, query.method, query.sort, role],
   )
 
   const isFiltered = useMemo(
@@ -90,7 +92,7 @@ const PaymentHistory = () => {
           description={
             isFiltered
               ? 'Try a different payment ID, policy or reference, or clear the filters.'
-              : 'Mock payments recorded against premium instalments will appear here.'
+              : 'Payments recorded against premium instalments will appear here.'
           }
           action={
             isFiltered ? (
@@ -119,7 +121,7 @@ const PaymentHistory = () => {
         ]}
         eyebrow="Module 2 · Premium Schedule & Payments"
         title="Payment history"
-        description="Every mock payment attempt recorded against a premium instalment."
+        description="Every payment attempt recorded against a premium instalment."
       />
 
       {summary && (
@@ -130,7 +132,7 @@ const PaymentHistory = () => {
               {
                 id: 'collected',
                 tone: 'paid',
-                label: 'Collected (mock)',
+                label: 'Collected',
                 value: formatCurrency(summary.collected),
                 detail: 'From successful payments',
               },

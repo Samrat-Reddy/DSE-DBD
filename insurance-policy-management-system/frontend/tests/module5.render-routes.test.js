@@ -34,7 +34,7 @@ before(async () => {
   pages = await harness.load('/src/pages/index.js')
   ui = await harness.load('/src/components/commissions/index.js')
   service = await harness.load('/src/services/commissionService.js')
-  const premiums = await harness.load('/src/services/premiumService.js')
+  const premiums = await harness.load('/src/services/mockPremiumLedger.js')
 
   data.all = await service.getCommissions(ADMIN)
   data.meera = await service.getCommissions(MEERA)

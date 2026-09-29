@@ -184,6 +184,26 @@
   color: var(--color-primary-dark);
 }
 
+.payment-review__amount-field {
+  display: grid;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+  font-weight: 600;
+}
+
+.payment-review__amount-field input {
+  max-width: 16rem;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: var(--radius-md);
+  font: inherit;
+}
+
+.payment-review__amount-field small {
+  font-weight: 400;
+  color: var(--color-text-muted, #64748b);
+}
+
 .payment-review__amount strong {
   font-size: var(--text-2xl);
   font-variant-numeric: tabular-nums;

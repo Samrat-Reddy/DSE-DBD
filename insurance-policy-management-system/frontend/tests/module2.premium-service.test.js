@@ -26,7 +26,7 @@ const LIFE_POLICY = 'POL-2024-000226'
 
 before(async () => {
   harness = await createHarness()
-  premiums = await harness.load('/src/services/premiumService.js')
+  premiums = await harness.load('/src/services/mockPremiumLedger.js')
   // Module 1 now issues through the API; this module still reads the mock register.
   policies = await loadMockPolicyRegister(harness)
   dates = await harness.load('/src/utils/dateUtils.js')
@@ -332,7 +332,7 @@ describe('refresh persistence', () => {
   test('a fresh page load (new module instances) still shows the payment and PAID status', async () => {
     const reloaded = await createHarness()
     try {
-      const freshPremiums = await reloaded.load('/src/services/premiumService.js')
+      const freshPremiums = await reloaded.load('/src/services/mockPremiumLedger.js')
       const account = await freshPremiums.getPremiumScheduleByPolicyId(PA_POLICY)
       const last = account.installments.find((item) => item.installmentId === PA_LAST_INSTALMENT)
 
@@ -351,7 +351,7 @@ describe('refresh persistence', () => {
     storage.setItem('ipms.payments.session', '{not valid json')
     const reloaded = await createHarness()
     try {
-      const freshPremiums = await reloaded.load('/src/services/premiumService.js')
+      const freshPremiums = await reloaded.load('/src/services/mockPremiumLedger.js')
       const history = await freshPremiums.getPayments()
       assert.equal(history.total, 14, 'only the seeded payments remain')
     } finally {

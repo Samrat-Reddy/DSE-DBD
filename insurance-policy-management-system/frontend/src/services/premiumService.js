@@ -1,344 +1,338 @@
 /**
- * Premium Schedule & Payments service.
+ * Premium Schedule & Payments service (Module 2) — backed by the FastAPI API.
  *
- * The only module the Module 2 UI talks to for data. Backed by mock data and
- * the session payment store today, by FastAPI later:
+ *   React  ->  premiumService  ->  authApi (JWT)  ->  FastAPI  ->  MySQL
  *
- *   React  ->  premiumService  ->  mock data / store   (today)
- *   React  ->  premiumService  ->  FastAPI  ->  MySQL  (later)
+ * Every Module 2 screen reads and writes through this file only, and it has
+ * no mock data: MySQL is the single source of truth. The backend owns every
+ * rule and figure (instalment amounts, balances, statuses, payability, who
+ * may see or pay what); this file only translates the API contract
+ * (snake_case, decimal-string money, numeric instalment IDs) into the shapes
+ * the existing screens render.
  *
- * Functions are async and reject with `ApiError`, exactly like `apiClient`,
- * so pages need no change when the backend arrives. No HTTP request is made
- * and no money moves: payments recorded here are simulations.
- *
- * Schedules are tied to Module 1 policies via `mockPolicyStore`. Seeded
- * headers come from `premiumSchedules.js`; policies issued in the browser
- * session get a header derived from their own premium terms.
+ * Not-yet-migrated Modules 3–6 read `mockPremiumLedger` instead.
  */
 
 import { ApiError } from './apiClient'
-import { premiumSchedules } from '../data/premiumSchedules'
-import { findPolicyById, getAllPolicies } from './mockPolicyStore'
+import { authApi } from './authSession'
+import { ENDPOINTS } from './endpoints'
+import { buildInstallmentId } from '../utils/premiumCalculations'
+import { daysBetween } from '../utils/dateUtils'
 import {
-  addPayment,
-  findPaymentById,
-  generatePaymentId,
-  generateTransactionReference,
-  getAllPayments,
-} from './mockPaymentStore'
-import {
-  buildPremiumAccount,
-  buildScheduleHeaderFromPolicy,
-  calculatePortfolioSummary,
-  isPolicyScheduleEligible,
-  parseInstallmentNumber,
-} from '../utils/premiumCalculations'
-import { queryPayments, queryPremiumAccounts, summarisePayments } from '../utils/premiumQuery'
-import { PAYABILITY_REASON, validatePaymentRequest } from '../utils/paymentValidation'
-import { todayIso } from '../utils/dateUtils'
-import { PAYMENT_STATUS } from '../utils/constants'
+  INSTALLMENT_STATUS,
+  PAYMENT_METHODS,
+  PAYMENT_STANDING,
+  PAYMENT_STATUS,
+  POLICY_TYPES,
+  PREMIUM_FREQUENCIES,
+} from '../utils/constants'
 
-/** Same deliberate delay as `policyService`, so loading states are real. */
-const MOCK_LATENCY_MS = 220
-
-const withMockLatency = (value) =>
-  new Promise((resolve) => {
-    setTimeout(() => resolve(value), MOCK_LATENCY_MS)
-  })
-
-/** Deep copy so callers can never mutate the mock source of truth. */
-const clone = (value) => JSON.parse(JSON.stringify(value))
-
-/** Outcomes a reviewer can choose for a simulated payment. */
-export const MOCK_PAYMENT_OUTCOMES = {
-  APPROVE: 'approve',
-  DECLINE: 'decline',
+/** How a payment attempt resolves. There is no payment gateway yet, so the payer states it. */
+export const PAYMENT_OUTCOMES = {
+  APPROVE: 'successful',
+  DECLINE: 'failed',
 }
+
+/** Lists have no paging UI yet; this is the API's maximum page size. */
+const LIST_LIMIT = 200
+
+const TYPE_LABELS = {
+  health: POLICY_TYPES.HEALTH,
+  life: POLICY_TYPES.LIFE,
+  motor: POLICY_TYPES.MOTOR,
+  personal_accident: POLICY_TYPES.PERSONAL_ACCIDENT,
+  home: POLICY_TYPES.HOME,
+}
+const FREQUENCY_LABELS = {
+  monthly: PREMIUM_FREQUENCIES.MONTHLY,
+  quarterly: PREMIUM_FREQUENCIES.QUARTERLY,
+  half_yearly: PREMIUM_FREQUENCIES.HALF_YEARLY,
+  annual: PREMIUM_FREQUENCIES.ANNUAL,
+}
+const STANDING_LABELS = {
+  overdue: PAYMENT_STANDING.OVERDUE,
+  due: PAYMENT_STANDING.DUE,
+  up_to_date: PAYMENT_STANDING.UP_TO_DATE,
+  fully_paid: PAYMENT_STANDING.FULLY_PAID,
+}
+const PAYMENT_STATUS_LABELS = {
+  successful: PAYMENT_STATUS.SUCCESS,
+  failed: PAYMENT_STATUS.FAILED,
+  pending: PAYMENT_STATUS.PENDING,
+}
+const METHOD_LABELS = {
+  upi: PAYMENT_METHODS.UPI,
+  card: PAYMENT_METHODS.CARD,
+  net_banking: PAYMENT_METHODS.NET_BANKING,
+}
+const invert = (map) => Object.fromEntries(Object.entries(map).map(([code, label]) => [label, code]))
+const STANDING_CODES = invert(STANDING_LABELS)
+const PAYMENT_STATUS_CODES = invert(PAYMENT_STATUS_LABELS)
+const METHOD_CODES = invert(METHOD_LABELS)
+
+const toNumber = (value) => (value === null || value === undefined ? null : Number(value))
+const filterValue = (value, codes) => (!value || value === 'all' ? undefined : codes?.[value] ?? value)
 
 /* ------------------------------------------------------------------ */
-/* Internal joins                                                      */
+/* API -> UI shapes                                                    */
 /* ------------------------------------------------------------------ */
 
-const findSeededHeader = (policyId) =>
-  premiumSchedules.find((header) => header.policyId === policyId) ?? null
+const toPolicySnapshot = (policy) => ({
+  id: policy.policy_number,
+  productId: policy.product_code,
+  productName: policy.product_name,
+  type: TYPE_LABELS[policy.product_type] ?? policy.product_type,
+  status: policy.status,
+  policyholderName: policy.policyholder_name,
+  customerId: policy.customer_code,
+  startDate: policy.start_date,
+  endDate: policy.end_date,
+  durationYears: policy.term_years,
+})
 
-/**
- * Every schedule header in the demo: seeded headers (even if their policy is
- * missing — those surface as orphaned) plus derived headers for issued
- * policies that have no seeded header.
- */
-const getAllScheduleHeaders = () => {
-  const seededPolicyIds = new Set(premiumSchedules.map((header) => header.policyId))
-
-  const derived = getAllPolicies()
-    .filter((policy) => !seededPolicyIds.has(policy.id))
-    .map(buildScheduleHeaderFromPolicy)
-    .filter(Boolean)
-
-  return [...derived, ...premiumSchedules]
-}
-
-const resolveHeaderForPolicy = (policyId) => {
-  const policy = findPolicyById(policyId)
-  const header = findSeededHeader(policyId) ?? buildScheduleHeaderFromPolicy(policy)
-  return { policy, header }
-}
-
-/** Throw the right error when a policy has no schedule. */
-const assertHeaderExists = (policyId, policy, header) => {
-  if (header) return
-
-  if (policy && !isPolicyScheduleEligible(policy)) {
-    throw new ApiError(
-      `Policy ${policyId} has not been issued yet, so it has no premium schedule.`,
-      { status: 409, data: { reason: 'policy-not-issued', policyId } },
-    )
-  }
-
-  throw new ApiError(`No premium schedule found for policy "${policyId}".`, {
-    status: 404,
-    data: { reason: 'policy-not-found', policyId },
-  })
-}
-
-/** Payment plus the policy details needed to display it in a list. */
-const enrichPayment = (payment) => {
-  const policy = findPolicyById(payment.policyId)
-
+const toSummary = (summary, policyNumber) => {
+  const ref = (item) => (item ? buildInstallmentId(policyNumber, item.installment_number) : null)
   return {
-    ...payment,
-    installmentNumber:
-      payment.installmentNumber ?? parseInstallmentNumber(payment.installmentId),
-    policyholderName: policy?.policyholder?.name ?? null,
-    customerId: policy?.policyholder?.customerId ?? null,
-    productName: policy?.productName ?? null,
-    policyExists: Boolean(policy),
-    isMock: true,
+    totalInstallments: summary.installment_count,
+    counts: {
+      paid: summary.counts.paid,
+      due: summary.counts.due,
+      upcoming: summary.counts.upcoming,
+      overdue: summary.counts.overdue,
+    },
+    partiallyPaidCount: summary.counts.partially_paid,
+    totalPremium: toNumber(summary.total_premium),
+    totalPaid: toNumber(summary.total_paid),
+    outstanding: toNumber(summary.outstanding),
+    overdueAmount: toNumber(summary.overdue_amount),
+    dueAmount: toNumber(summary.due_amount),
+    upcomingAmount: toNumber(summary.upcoming_amount),
+    payableNow: toNumber(summary.payable_now),
+    nextDueAmount: toNumber(summary.next_due?.amount_outstanding) ?? 0,
+    nextDueDate: summary.next_due?.due_date ?? null,
+    nextDueInstallmentId: ref(summary.next_due),
+    nextDueStatus: null,
+    oldestOverdueDate: summary.oldest_overdue?.due_date ?? null,
+    oldestOverdueInstallmentId: ref(summary.oldest_overdue),
+    oldestOverdueDays: summary.oldest_overdue_days,
+    paidRatio: summary.installment_count ? summary.counts.paid / summary.installment_count : 0,
+    standing: STANDING_LABELS[summary.standing] ?? summary.standing,
   }
 }
 
-/** A list row does not need every instalment of a 100-instalment plan. */
-const withoutInstallments = (account) => {
-  const listRow = { ...account }
-  delete listRow.installments
-  return listRow
+/** Screen status: paid / overdue come from the API; otherwise DUE once payable-from has arrived. */
+const displayStatus = (installment, asOf) => {
+  if (installment.status === 'paid') return INSTALLMENT_STATUS.PAID
+  if (installment.status === 'overdue') return INSTALLMENT_STATUS.OVERDUE
+  return asOf >= installment.payable_from ? INSTALLMENT_STATUS.DUE : INSTALLMENT_STATUS.UPCOMING
 }
+
+const toInstallment = (installment, asOf) => {
+  const status = displayStatus(installment, asOf)
+  const daysUntilDue = daysBetween(asOf, installment.due_date)
+  return {
+    id: installment.id,
+    installmentId: buildInstallmentId(installment.policy_number, installment.installment_number),
+    policyId: installment.policy_number,
+    installmentNumber: installment.installment_number,
+    dueDate: installment.due_date,
+    // `amount` is the instalment's full amount; `outstanding` what is still owed.
+    amount: toNumber(installment.amount_due),
+    amountPaid: toNumber(installment.amount_paid),
+    outstanding: toNumber(installment.amount_outstanding),
+    isPartiallyPaid: status !== INSTALLMENT_STATUS.PAID && Number(installment.amount_paid) > 0,
+    status,
+    paidDate: status === INSTALLMENT_STATUS.PAID ? installment.last_paid_at?.slice(0, 10) ?? null : null,
+    // Latest successful payment: the one a paid instalment links to.
+    paymentId: installment.last_payment_number,
+    pendingPaymentId: installment.pending_payment_number,
+    failedAttempts: installment.failed_attempts,
+    daysOverdue: status === INSTALLMENT_STATUS.OVERDUE ? Math.abs(daysUntilDue ?? 0) : 0,
+    daysUntilDue: status === INSTALLMENT_STATUS.PAID ? null : daysUntilDue,
+  }
+}
+
+const toAccount = (schedule) => ({
+  scheduleId: `SCH-${schedule.policy.policy_number.replace(/^POL-/, '')}`,
+  policyId: schedule.policy.policy_number,
+  premiumAmount: toNumber(schedule.regular_installment_amount),
+  annualPremium: toNumber(schedule.annual_premium),
+  frequency: FREQUENCY_LABELS[schedule.frequency] ?? schedule.frequency,
+  startDate: schedule.policy.start_date,
+  endDate: schedule.policy.end_date,
+  totalInstallments: schedule.installment_count,
+  policy: toPolicySnapshot(schedule.policy),
+  isOrphaned: false,
+  summary: toSummary(schedule.summary, schedule.policy.policy_number),
+  asOf: schedule.as_of,
+})
+
+const toPayment = (payment) => ({
+  paymentId: payment.payment_number,
+  policyId: payment.policy_number,
+  installmentId: buildInstallmentId(payment.policy_number, payment.installment_number),
+  installmentNumber: payment.installment_number,
+  amount: toNumber(payment.amount),
+  paymentDate: payment.paid_at.slice(0, 10),
+  paidAt: payment.paid_at,
+  paymentMethod: METHOD_LABELS[payment.payment_method] ?? payment.payment_method,
+  status: PAYMENT_STATUS_LABELS[payment.status] ?? payment.status,
+  transactionReference: payment.payment_reference,
+  failureReason: payment.failure_reason,
+  policyholderName: payment.policyholder_name,
+  customerId: payment.customer_code,
+  productName: payment.product_name,
+  policyExists: true,
+  isMock: false,
+})
+
+const toPortfolio = (portfolio) => ({
+  policies: portfolio.policies,
+  totalPaid: toNumber(portfolio.total_paid),
+  paidCount: portfolio.paid_count,
+  dueAmount: toNumber(portfolio.due_amount),
+  dueCount: portfolio.due_count,
+  overdueAmount: toNumber(portfolio.overdue_amount),
+  overdueCount: portfolio.overdue_count,
+  upcomingAmount: toNumber(portfolio.upcoming_amount),
+  upcomingCount: portfolio.upcoming_count,
+  payableNow: toNumber(portfolio.payable_now),
+  policiesOverdue: portfolio.policies_overdue,
+})
+
+const toPaymentSummary = (summary) => ({
+  total: summary.total,
+  success: summary.successful,
+  failed: summary.failed,
+  pending: summary.pending,
+  collected: toNumber(summary.collected),
+})
 
 /* ------------------------------------------------------------------ */
-/* Public API                                                          */
+/* Public API (same names and shapes the Module 2 screens already use) */
 /* ------------------------------------------------------------------ */
 
 /**
- * Synchronous premium summary for one policy, or `null` when it has no
- * schedule. For other services that need premium context (Module 3 claims)
- * without duplicating schedule logic. UI code should use the async API.
- */
-export const getPremiumAccountSnapshot = (policyId, asOf = todayIso()) => {
-  const { policy, header } = resolveHeaderForPolicy(policyId)
-  if (!header) return null
-  const account = buildPremiumAccount(header, policy, getAllPayments(), asOf)
-  return { policyId, asOf, premiumAmount: account.premiumAmount, frequency: account.frequency, summary: account.summary }
-}
-
-/**
- * Synchronous schedule header (premium terms) for one policy, or `null`.
- * For Module 5 commission, which must check that a payment belongs to the
- * policy's schedule, without duplicating how headers are resolved.
- */
-export const getPremiumScheduleHeader = (policyId) => {
-  const { header } = resolveHeaderForPolicy(policyId)
-  return header ? clone(header) : null
-}
-
-/** Synchronous read of all payments, for other services (Module 5). */
-export const getPaymentRecords = () => clone(getAllPayments())
-
-/**
- * Premium accounts for every policy with a schedule, plus portfolio totals.
+ * Premium accounts in the signed-in account's scope, plus portfolio totals.
  *
- * Portfolio totals always cover the whole demo book, not just the filtered
- * rows, so the headline figures do not change while the user searches.
- *
- * @param {{search?: string, standing?: string, sort?: string, asOf?: string}} query
+ * @param {{search?: string, standing?: string, sort?: string}} query
  */
 export const getPremiumSchedules = async (query = {}) => {
-  // Future: return apiClient.get(ENDPOINTS.premiumSchedules, { params: query })
-  const asOf = query.asOf ?? todayIso()
-  const payments = getAllPayments()
-
-  const accounts = getAllScheduleHeaders().map((header) =>
-    buildPremiumAccount(header, findPolicyById(header.policyId), payments, asOf),
-  )
-
-  const items = queryPremiumAccounts(accounts, query).map(withoutInstallments)
-  const awaitingIssuance = getAllPolicies().filter(
-    (policy) => !isPolicyScheduleEligible(policy),
-  ).length
-
-  return withMockLatency(
-    clone({
-      items,
-      total: items.length,
-      portfolio: calculatePortfolioSummary(accounts),
-      awaitingIssuance,
-      asOf,
-    }),
-  )
+  const response = await authApi.get(ENDPOINTS.premiumSchedules, {
+    params: {
+      search: query.search?.trim() || undefined,
+      standing: filterValue(query.standing, STANDING_CODES),
+      sort: query.sort,
+      limit: LIST_LIMIT,
+    },
+  })
+  return {
+    items: response.items.map(toAccount),
+    total: response.total,
+    portfolio: toPortfolio(response.portfolio),
+    awaitingIssuance: response.awaiting_issuance,
+    asOf: response.as_of,
+  }
 }
 
 /**
  * Full premium account for one policy: instalments, summary and payments.
- *
- * Rejects with 404 for an unknown policy and 409 for a policy that exists
- * but has not been issued.
+ * Rejects with 404 (unknown or out of scope) or 409 (policy not issued yet).
  */
-export const getPremiumScheduleByPolicyId = async (policyId, options = {}) => {
-  // Future: return apiClient.get(ENDPOINTS.premiumScheduleByPolicyId(policyId))
-  const asOf = options.asOf ?? todayIso()
-  const { policy, header } = resolveHeaderForPolicy(policyId)
-  assertHeaderExists(policyId, policy, header)
-
-  const payments = getAllPayments()
-  const account = buildPremiumAccount(header, policy, payments, asOf)
-
-  const policyPayments = queryPayments(
-    payments.filter((payment) => payment.policyId === policyId).map(enrichPayment),
-    { sort: 'date-desc' },
-  )
-
-  return withMockLatency(clone({ ...account, payments: policyPayments }))
+export const getPremiumScheduleByPolicyId = async (policyId) => {
+  const [schedule, installments, payments] = await Promise.all([
+    authApi.get(ENDPOINTS.premiumScheduleByPolicyId(policyId)),
+    authApi.get(ENDPOINTS.policyInstallments(policyId)),
+    authApi.get(ENDPOINTS.payments, { params: { policy_number: policyId, limit: LIST_LIMIT } }),
+  ])
+  return {
+    ...toAccount(schedule),
+    installments: installments.items.map((item) => toInstallment(item, installments.as_of)),
+    payments: payments.items.map(toPayment),
+  }
 }
 
 /**
- * Payment history, searchable and filterable.
+ * Payment history in scope, searchable and filterable.
  *
  * @param {{search?: string, status?: string, method?: string, sort?: string}} query
  */
 export const getPayments = async (query = {}) => {
-  // Future: return apiClient.get(ENDPOINTS.payments, { params: query })
-  const enriched = getAllPayments().map(enrichPayment)
-  const items = queryPayments(enriched, query)
-
-  return withMockLatency(
-    clone({ items, total: items.length, summary: summarisePayments(enriched) }),
-  )
-}
-
-/**
- * One payment with the instalment it was applied to, in its current state.
- */
-export const getPaymentById = async (paymentId, options = {}) => {
-  // Future: return apiClient.get(ENDPOINTS.paymentById(paymentId))
-  const payment = findPaymentById(paymentId)
-
-  if (!payment) {
-    throw new ApiError(`No payment found for "${paymentId}".`, {
-      status: 404,
-      data: { reason: 'payment-not-found', paymentId },
-    })
+  const response = await authApi.get(ENDPOINTS.payments, {
+    params: {
+      search: query.search?.trim() || undefined,
+      status: filterValue(query.status, PAYMENT_STATUS_CODES),
+      method: filterValue(query.method, METHOD_CODES),
+      sort: query.sort,
+      limit: LIST_LIMIT,
+    },
+  })
+  return {
+    items: response.items.map(toPayment),
+    total: response.total,
+    summary: toPaymentSummary(response.summary),
   }
-
-  const asOf = options.asOf ?? todayIso()
-  const { policy, header } = resolveHeaderForPolicy(payment.policyId)
-  const account = header
-    ? buildPremiumAccount(header, policy, getAllPayments(), asOf)
-    : null
-
-  const installment =
-    account?.installments.find((item) => item.installmentId === payment.installmentId) ??
-    null
-
-  return withMockLatency(
-    clone({
-      payment: enrichPayment(payment),
-      installment,
-      policy: account?.policy ?? null,
-      isOrphaned: !policy,
-    }),
-  )
 }
 
+/** One payment with the instalment it was applied to, in its current state. */
+export const getPaymentById = async (paymentId) => {
+  try {
+    const payment = await authApi.get(ENDPOINTS.paymentById(paymentId))
+    const [installment, schedule] = await Promise.all([
+      authApi.get(ENDPOINTS.installmentById(payment.installment_id)),
+      authApi.get(ENDPOINTS.premiumScheduleByPolicyId(payment.policy_number)),
+    ])
+    return {
+      payment: toPayment(payment),
+      installment: toInstallment(installment, schedule.as_of),
+      policy: toPolicySnapshot(schedule.policy),
+      isOrphaned: false,
+    }
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      throw new ApiError(`No payment found for "${paymentId}".`, {
+        status: 404,
+        data: { ...error.data, reason: 'payment-not-found', paymentId },
+      })
+    }
+    throw error
+  }
+}
+
+/** A new reference for each payment attempt (retrying the same attempt reuses it). */
+export const createPaymentReference = () =>
+  `PAY-REF-${crypto.randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase()}`
+
 /**
- * Record a MOCK premium payment. No payment provider is called.
+ * Record a payment attempt. The backend locks the instalment, validates the
+ * amount against the remaining balance and records the attempt atomically.
  *
- * Validation runs here as well as in the UI, and runs synchronously before
- * any await, so a double submission sees the first payment and is rejected
- * as a duplicate.
- *
- * @param {{policyId: string, installmentId: string, amount: number,
- *          method: string, outcome?: 'approve'|'decline'}} request
- * @returns {Promise<{payment: object, account: object, previousSummary: object}>}
+ * @param {{installment: object, amount: number|string, method: string,
+ *          outcome?: string, reference: string, account?: object}} request
+ * @returns {Promise<{payment: object, installment: object, account: object, previousSummary: object|null}>}
  */
-export const recordMockPayment = async ({
-  policyId,
-  installmentId,
+export const recordPayment = async ({
+  installment,
   amount,
   method,
-  outcome = MOCK_PAYMENT_OUTCOMES.APPROVE,
+  outcome = PAYMENT_OUTCOMES.APPROVE,
+  reference,
+  account = null,
 }) => {
-  // Future: return apiClient.post(ENDPOINTS.payments, request)
-  const asOf = todayIso()
-  const { policy, header } = resolveHeaderForPolicy(policyId)
-  assertHeaderExists(policyId, policy, header)
+  const response = await authApi.post(ENDPOINTS.installmentPayments(installment.id), {
+    amount: String(amount),
+    payment_method: METHOD_CODES[method] ?? method,
+    payment_reference: reference,
+    outcome,
+  })
+  const schedule = await authApi.get(ENDPOINTS.premiumScheduleByPolicyId(response.installment.policy_number))
 
-  const before = buildPremiumAccount(header, policy, getAllPayments(), asOf)
-  const installment =
-    before.installments.find((item) => item.installmentId === installmentId) ?? null
-
-  const errors = validatePaymentRequest({ installment, amount, method })
-
-  if (Object.keys(errors).length > 0) {
-    const reason = !installment
-      ? PAYABILITY_REASON.NOT_FOUND
-      : errors.installment
-        ? 'installment-not-payable'
-        : 'invalid-request'
-    const status = !installment ? 404 : errors.installment ? 409 : 422
-
-    throw new ApiError(errors.installment ?? errors.amount ?? errors.method, {
-      status,
-      data: { reason, errors },
-    })
+  return {
+    payment: toPayment(response.payment),
+    installment: toInstallment(response.installment, schedule.as_of),
+    account: toAccount(schedule),
+    previousSummary: account?.summary ?? null,
   }
-
-  if (!Object.values(MOCK_PAYMENT_OUTCOMES).includes(outcome)) {
-    throw new ApiError('Select a valid mock payment outcome.', {
-      status: 422,
-      data: { reason: 'invalid-request', errors: { outcome: 'Invalid outcome.' } },
-    })
-  }
-
-  const isApproved = outcome === MOCK_PAYMENT_OUTCOMES.APPROVE
-
-  const payment = {
-    paymentId: generatePaymentId(Number(asOf.slice(0, 4))),
-    policyId,
-    installmentId,
-    installmentNumber: installment.installmentNumber,
-    amount: Number(amount),
-    paymentDate: asOf,
-    paidAt: new Date().toISOString(),
-    paymentMethod: method,
-    status: isApproved ? PAYMENT_STATUS.SUCCESS : PAYMENT_STATUS.FAILED,
-    transactionReference: generateTransactionReference(),
-    ...(isApproved
-      ? {}
-      : { failureReason: 'Declined — simulated outcome chosen during review.' }),
-    isSessionRecorded: true,
-  }
-
-  addPayment(payment)
-
-  const after = buildPremiumAccount(header, policy, getAllPayments(), asOf)
-
-  return withMockLatency(
-    clone({
-      payment: enrichPayment(payment),
-      installment: after.installments.find((item) => item.installmentId === installmentId),
-      account: withoutInstallments(after),
-      previousSummary: before.summary,
-    }),
-  )
 }
 
 export default {
@@ -346,5 +340,6 @@ export default {
   getPremiumScheduleByPolicyId,
   getPayments,
   getPaymentById,
-  recordMockPayment,
+  recordPayment,
+  createPaymentReference,
 }
