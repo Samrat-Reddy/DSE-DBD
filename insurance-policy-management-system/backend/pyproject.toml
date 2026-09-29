@@ -1,0 +1,26 @@
+[project]
+name = "ipms-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "mysql: integration test against a real MySQL server (needs TEST_DATABASE_URL)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101"]  # assert is how pytest works
+
+[tool.ruff.lint.isort]
+# backend/alembic/ holds migrations; the "alembic" import is the installed package.
+known-third-party = ["alembic"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106"]  # dummy credentials in test URLs

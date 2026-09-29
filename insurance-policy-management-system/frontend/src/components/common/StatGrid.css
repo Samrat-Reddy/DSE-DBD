@@ -1,0 +1,112 @@
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--stat-columns, 4), minmax(0, 1fr));
+  gap: var(--space-md);
+  margin: 0;
+}
+
+.stat-grid__item {
+  position: relative;
+  min-width: 0;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-md) var(--space-md) calc(var(--space-md) + 4px);
+  overflow: hidden;
+}
+
+/* Accent rail on the left edge. */
+.stat-grid__item::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background-color: var(--color-border-strong);
+}
+
+.stat-grid__label {
+  margin: 0 0 0.25rem;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.stat-grid__value {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.stat-grid__detail {
+  margin: 0.25rem 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ---- Tones ---- */
+.stat-grid__item--primary {
+  background-color: var(--color-navy);
+  border-color: var(--color-navy);
+}
+
+.stat-grid__item--primary::before {
+  background-color: var(--color-primary);
+}
+
+.stat-grid__item--primary .stat-grid__label,
+.stat-grid__item--primary .stat-grid__detail {
+  color: rgba(248, 250, 252, 0.72);
+}
+
+.stat-grid__item--primary .stat-grid__value {
+  color: var(--color-text-inverse);
+}
+
+.stat-grid__item--paid::before {
+  background-color: var(--status-active-fg);
+}
+
+.stat-grid__item--due::before {
+  background-color: var(--status-pending-fg);
+}
+
+.stat-grid__item--upcoming::before {
+  background-color: var(--status-info-fg);
+}
+
+.stat-grid__item--overdue {
+  background-color: var(--status-expired-bg);
+  border-color: var(--status-expired-border);
+}
+
+.stat-grid__item--overdue::before {
+  background-color: var(--status-expired-fg);
+}
+
+.stat-grid__item--overdue .stat-grid__value {
+  color: var(--status-expired-fg);
+}
+
+@media (max-width: 1080px) {
+  .stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .stat-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

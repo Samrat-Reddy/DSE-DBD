@@ -1,0 +1,199 @@
+.claim-list__id {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.claim-list__primary {
+  display: block;
+  font-weight: 600;
+}
+
+.claim-list__secondary {
+  display: block;
+  margin-top: 0.0625rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.claim-list__secondary a {
+  color: var(--color-text-muted);
+}
+
+.claim-list__amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.claim-list__muted {
+  color: var(--color-text-subtle);
+}
+
+.claim-list__nowrap {
+  white-space: nowrap;
+}
+
+.claim-list__new {
+  display: inline-block;
+  margin-left: var(--space-sm);
+  padding: 0.0625rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--status-info-fg);
+  background-color: var(--status-info-bg);
+  border: 1px solid var(--status-info-border);
+  border-radius: var(--radius-pill);
+}
+
+/* ---------- Desktop table ---------- */
+.claim-table-wrap {
+  overflow-x: auto;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.claim-table {
+  width: 100%;
+  min-width: 1040px;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.claim-table thead th {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.claim-table tbody th,
+.claim-table tbody td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.claim-table tbody tr:last-child th,
+.claim-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.claim-table tbody tr:hover {
+  background-color: var(--color-primary-soft);
+}
+
+.claim-table .claim-table__numeric {
+  text-align: right;
+}
+
+.claim-table__action {
+  text-align: right;
+}
+
+/* ---------- Mobile cards ---------- */
+.claim-cards {
+  display: none;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-md);
+}
+
+.claim-card {
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--status-info-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.claim-card--approved,
+.claim-card--settled {
+  border-left-color: var(--status-active-fg);
+}
+
+.claim-card--under-review,
+.claim-card--assessed {
+  border-left-color: var(--status-pending-fg);
+}
+
+.claim-card--rejected {
+  border-left-color: var(--status-expired-fg);
+}
+
+.claim-card--cancelled {
+  border-left-color: var(--color-border-strong);
+}
+
+.claim-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.claim-card__type {
+  margin: var(--space-xs) 0 0;
+  font-weight: 600;
+}
+
+.claim-card__holder {
+  margin: 0.125rem 0 var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.claim-card__figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+  margin: 0 0 var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.claim-card__figures dt {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.claim-card__figures dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .claim-table-wrap {
+    display: none;
+  }
+
+  .claim-cards {
+    display: grid;
+  }
+}

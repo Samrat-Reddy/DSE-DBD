@@ -1,0 +1,428 @@
+/* Shared styles for claim eligibility, workflow and decision panels. */
+
+.claim-panel {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.claim-panel__intro,
+.claim-panel__muted {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.claim-panel__footnote {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.claim-panel__tally {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.claim-panel__basis {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.claim-panel__notice {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px dashed var(--status-pending-border);
+  border-radius: var(--radius-md);
+  background-color: var(--status-pending-bg);
+  font-size: var(--text-sm);
+  color: #78350f;
+}
+
+.claim-panel__fields {
+  display: grid;
+  gap: var(--space-sm);
+  max-width: 34rem;
+}
+
+.claim-panel__suggest {
+  margin-top: calc(var(--space-xs) * -1);
+}
+
+.claim-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.claim-panel__error,
+.claim-panel__blocked {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-danger-border);
+  border-left: 4px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background-color: var(--color-danger-soft);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-danger);
+}
+
+/* ---------- Eligibility verdict ---------- */
+.claim-eligibility {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.claim-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--status-active-border);
+  border-radius: var(--radius-md);
+  background-color: var(--status-active-bg);
+}
+
+.claim-verdict__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background-color: var(--status-active-fg);
+}
+
+.claim-verdict__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--status-active-fg);
+}
+
+.claim-verdict__detail {
+  margin: 0.25rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.claim-verdict--blocked {
+  border-color: var(--status-expired-border);
+  background-color: var(--status-expired-bg);
+}
+
+.claim-verdict--blocked .claim-verdict__icon {
+  background-color: var(--status-expired-fg);
+}
+
+.claim-verdict--blocked .claim-verdict__title {
+  color: var(--status-expired-fg);
+}
+
+/* ---------- Policy context ---------- */
+.claim-context__limit,
+.claim-context__premium {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ---------- Decision summary ---------- */
+.decision-summary {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.decision-summary__figures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.decision-summary__figures > div {
+  min-width: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-subtle);
+}
+
+.decision-summary__figures dt {
+  margin: 0 0 0.1875rem;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.decision-summary__figures dd {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.decision-summary__basis {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.decision-summary__reasons {
+  padding: var(--space-sm) var(--space-md);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background-color: var(--color-primary-soft);
+}
+
+.decision-summary__title {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary-dark);
+}
+
+.decision-summary__reasons ul {
+  margin: 0;
+  display: grid;
+  gap: 0.25rem;
+  font-size: var(--text-sm);
+}
+
+.decision-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.decision-option {
+  display: grid;
+  gap: var(--space-sm);
+  align-content: start;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-top: 4px solid var(--status-active-fg);
+  border-radius: var(--radius-md);
+}
+
+.decision-option--reject {
+  border-top-color: var(--status-expired-fg);
+}
+
+.decision-option__title {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.decision-option__text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.decision-option .ui-button {
+  justify-self: start;
+}
+
+/* ---------- Workflow actions ---------- */
+.workflow-actions {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.workflow-actions__next {
+  margin: 0;
+  font-weight: 600;
+}
+
+.workflow-actions__readonly {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--status-info-border);
+  border-radius: var(--radius-md);
+  background-color: var(--status-info-bg);
+  font-size: var(--text-sm);
+  color: var(--color-primary-dark);
+}
+
+.workflow-actions__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.workflow-actions__confirm {
+  display: grid;
+  gap: var(--space-sm);
+  max-width: 34rem;
+  padding: var(--space-md);
+  border: 1px solid var(--status-expired-border);
+  border-radius: var(--radius-md);
+  background-color: var(--status-expired-bg);
+}
+
+.workflow-actions__confirm-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--status-expired-fg);
+}
+
+/* ---------- Workflow rules ---------- */
+.workflow-rules {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+}
+
+.workflow-rules__summary {
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+}
+
+.workflow-rules__summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.workflow-rules[open] .workflow-rules__summary {
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.workflow-rules__body {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.workflow-rules__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.workflow-rules__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.workflow-rules__table th,
+.workflow-rules__table td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.workflow-rules__table thead th {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-subtle);
+}
+
+.workflow-rules__table tbody tr:last-child th,
+.workflow-rules__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.workflow-rules__you,
+.workflow-rules__not-you {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.workflow-rules__you {
+  color: var(--status-active-fg);
+}
+
+.workflow-rules__not-you {
+  color: var(--color-text-muted);
+}
+
+.workflow-rules__attempt {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) auto;
+  gap: var(--space-sm);
+  align-items: end;
+}
+
+.workflow-rules__attempt .form-field__hint {
+  max-width: 22rem;
+}
+
+.workflow-rules__outcome {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.workflow-rules__outcome--allowed {
+  border: 1px solid var(--status-active-border);
+  background-color: var(--status-active-bg);
+  color: var(--status-active-fg);
+}
+
+.workflow-rules__outcome--blocked {
+  border: 1px solid var(--status-expired-border);
+  background-color: var(--status-expired-bg);
+  color: var(--status-expired-fg);
+}
+
+@media (max-width: 900px) {
+  .decision-summary__figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .decision-options,
+  .workflow-rules__attempt {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workflow-rules__body {
+    padding: var(--space-md);
+  }
+
+  .claim-panel__actions .ui-button,
+  .workflow-actions__row .ui-button,
+  .decision-option .ui-button,
+  .workflow-rules__attempt .ui-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .decision-summary__figures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

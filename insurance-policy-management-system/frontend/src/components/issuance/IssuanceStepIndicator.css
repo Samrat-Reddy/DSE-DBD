@@ -1,0 +1,159 @@
+.steps {
+  margin-bottom: var(--space-lg);
+}
+
+/* Visible only to assistive tech on wide screens; shown on mobile instead of
+   the full step list. */
+.steps__status {
+  margin: 0 0 var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  display: none;
+}
+
+.steps__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--step-count, 4), minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.steps__item {
+  min-width: 0;
+}
+
+.steps__button {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.steps__button:disabled {
+  cursor: default;
+}
+
+.steps__button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.steps__marker {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  background-color: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+.steps__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.steps__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.steps__description {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: 0.0625rem;
+}
+
+/* ---- States ---- */
+.steps__item--complete .steps__button {
+  border-top-color: var(--status-active-fg);
+}
+
+.steps__item--complete .steps__button:hover:not(:disabled) {
+  background-color: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  border-top-color: var(--status-active-fg);
+}
+
+.steps__item--complete .steps__marker {
+  background-color: var(--status-active-fg);
+  color: #fff;
+}
+
+.steps__item--current .steps__button {
+  border-top-color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.steps__item--current .steps__marker {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
+.steps__item--upcoming .steps__label,
+.steps__item--upcoming .steps__description {
+  color: var(--color-text-subtle);
+}
+
+@media (max-width: 860px) {
+  .steps__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .steps__description {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  /* A four-card grid is unusable on a phone — show the current step in text
+     and reduce the list to a compact progress bar. */
+  .steps__status {
+    display: block;
+  }
+
+  .steps__list {
+    grid-template-columns: repeat(var(--step-count, 4), minmax(0, 1fr));
+    gap: var(--space-xs);
+  }
+
+  .steps__button {
+    padding: 0;
+    height: 0.3125rem;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-border-strong);
+  }
+
+  .steps__item--complete .steps__button {
+    background-color: var(--status-active-fg);
+  }
+
+  .steps__item--current .steps__button {
+    background-color: var(--color-primary);
+  }
+
+  .steps__marker,
+  .steps__text {
+    display: none;
+  }
+}

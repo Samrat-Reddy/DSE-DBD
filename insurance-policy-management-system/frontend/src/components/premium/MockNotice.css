@@ -1,0 +1,23 @@
+.mock-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px dashed var(--status-pending-border);
+  border-radius: var(--radius-md);
+  background-color: var(--status-pending-bg);
+}
+
+.mock-notice__icon {
+  flex-shrink: 0;
+  font-size: var(--text-lg);
+  line-height: 1.3;
+  color: var(--status-pending-fg);
+}
+
+.mock-notice__text {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: #78350f;
+}

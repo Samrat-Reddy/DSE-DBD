@@ -1,0 +1,81 @@
+/* Design tokens. Components reference these variables rather than raw values. */
+:root {
+  /* Surfaces & neutrals */
+  --color-bg: #f1f4f9;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f8fafc;
+  --color-surface-sunken: #eef2f7;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  /* Text */
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
+  --color-text-inverse: #f8fafc;
+
+  /* Brand */
+  --color-primary: #1d4ed8;
+  --color-primary-dark: #1e3a8a;
+  --color-primary-soft: #eff4ff;
+  --color-navy: #0f2544;
+  --color-navy-soft: #1c3a63;
+
+  /* Status palette — one token trio per state keeps badges consistent */
+  --status-active-fg: #047857;
+  --status-active-bg: #ecfdf5;
+  --status-active-border: #a7f3d0;
+
+  --status-inactive-fg: #475569;
+  --status-inactive-bg: #f1f5f9;
+  --status-inactive-border: #cbd5e1;
+
+  --status-pending-fg: #b45309;
+  --status-pending-bg: #fffbeb;
+  --status-pending-border: #fde68a;
+
+  --status-expired-fg: #b91c1c;
+  --status-expired-bg: #fef2f2;
+  --status-expired-border: #fecaca;
+
+  --status-info-fg: #1d4ed8;
+  --status-info-bg: #eff6ff;
+  --status-info-border: #bfdbfe;
+
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-danger-border: #fecaca;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 3.5rem;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+
+  /* Layout */
+  --max-content-width: 1200px;
+  --focus-ring: 0 0 0 3px rgba(29, 78, 216, 0.35);
+}

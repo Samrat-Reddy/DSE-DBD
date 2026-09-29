@@ -1,0 +1,173 @@
+/* Shared styles for renewal panels: clock, reminder check, readiness. */
+
+.renewal-panel {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.renewal-panel__intro {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.renewal-panel__footnote {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.renewal-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.renewal-panel__readonly {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--status-info-border);
+  border-radius: var(--radius-md);
+  background-color: var(--status-info-bg);
+  font-size: var(--text-sm);
+  color: var(--color-primary-dark);
+}
+
+.renewal-panel__notice {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px dashed var(--status-pending-border);
+  border-radius: var(--radius-md);
+  background-color: var(--status-pending-bg);
+  font-size: var(--text-sm);
+  color: #78350f;
+}
+
+.renewal-panel__error {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-danger-border);
+  border-left: 4px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background-color: var(--color-danger-soft);
+  font-size: var(--text-sm);
+  color: #7f1d1d;
+}
+
+.renewal-panel__confirm {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--status-expired-border);
+  border-radius: var(--radius-md);
+  background-color: var(--status-expired-bg);
+}
+
+.renewal-panel__confirm-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--status-expired-fg);
+}
+
+/* ---------- Clock ---------- */
+.renewal-clock__dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md) var(--space-xl);
+}
+
+.renewal-clock__date {
+  display: grid;
+  gap: 0.125rem;
+}
+
+.renewal-clock__label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.renewal-clock__value {
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.renewal-clock__value--muted {
+  color: var(--color-text-muted);
+}
+
+.renewal-clock__mode {
+  justify-self: start;
+  padding: 0.0625rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--status-active-fg);
+  background-color: var(--status-active-bg);
+  border: 1px solid var(--status-active-border);
+  border-radius: var(--radius-pill);
+}
+
+.renewal-clock__mode--simulated {
+  color: var(--status-pending-fg);
+  background-color: var(--status-pending-bg);
+  border: 1px dashed var(--status-pending-border);
+}
+
+.renewal-clock__form {
+  display: grid;
+  gap: var(--space-sm);
+  max-width: 28rem;
+}
+
+/* ---------- Reminder check ---------- */
+.reminder-check__live:empty {
+  display: none;
+}
+
+.reminder-check__result {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--status-active-border);
+  border-left: 4px solid var(--status-active-fg);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-subtle);
+}
+
+.reminder-check__headline {
+  margin: 0;
+  font-weight: 700;
+}
+
+.reminder-check__group-title {
+  margin: 0 0 0.125rem;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.reminder-check__items {
+  margin: 0;
+  padding-left: 1.125rem;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Readiness ---------- */
+.renewal-readiness__verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  font-weight: 600;
+}

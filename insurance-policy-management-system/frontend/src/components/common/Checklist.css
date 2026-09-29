@@ -1,0 +1,88 @@
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.checklist__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+}
+
+.checklist__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.0625rem;
+  border-radius: 50%;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background-color: var(--color-text-subtle);
+}
+
+.checklist__text {
+  min-width: 0;
+}
+
+.checklist__label {
+  margin: 0;
+  font-weight: 600;
+}
+
+.checklist__detail {
+  margin: 0.125rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.checklist__item--pass {
+  border-left-color: var(--status-active-fg);
+}
+
+.checklist__item--pass .checklist__icon {
+  background-color: var(--status-active-fg);
+}
+
+.checklist__item--fail {
+  border-left-color: var(--status-expired-fg);
+  background-color: var(--status-expired-bg);
+}
+
+.checklist__item--fail .checklist__icon {
+  background-color: var(--status-expired-fg);
+}
+
+.checklist__item--warning {
+  border-left-color: var(--status-pending-fg);
+  background-color: var(--status-pending-bg);
+}
+
+.checklist__item--warning .checklist__icon {
+  background-color: var(--status-pending-fg);
+}
+
+.checklist__item--skipped .checklist__label {
+  color: var(--color-text-muted);
+}
+
+.checklist__item--blocked {
+  border-left-color: var(--status-expired-fg);
+  background-color: var(--status-expired-bg);
+}
+
+.checklist__item--blocked .checklist__icon {
+  background-color: var(--status-expired-fg);
+}

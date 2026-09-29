@@ -1,0 +1,182 @@
+.payment-list__id,
+.payment-list__policy {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+
+.payment-list__policy {
+  display: block;
+  font-weight: 600;
+}
+
+.payment-list__secondary {
+  display: block;
+  margin-top: 0.0625rem;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.payment-list__mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.payment-list__amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-list__nowrap {
+  white-space: nowrap;
+}
+
+.payment-list__new {
+  display: inline-block;
+  margin-left: var(--space-sm);
+  padding: 0.0625rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--status-info-fg);
+  background-color: var(--status-info-bg);
+  border: 1px solid var(--status-info-border);
+  border-radius: var(--radius-pill);
+}
+
+/* ---------- Desktop table ---------- */
+.payment-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+}
+
+.payment-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.payment-table thead th {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.payment-table tbody th,
+.payment-table tbody td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.payment-table tbody tr:last-child th,
+.payment-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.payment-table tbody tr:hover {
+  background-color: var(--color-primary-soft);
+}
+
+.payment-table .payment-table__numeric {
+  text-align: right;
+}
+
+/* ---------- Mobile cards ---------- */
+.payment-cards {
+  display: none;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-sm);
+}
+
+.payment-card {
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--status-active-fg);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  background-color: var(--color-surface);
+}
+
+.payment-card--failed {
+  border-left-color: var(--status-expired-fg);
+}
+
+.payment-card--pending {
+  border-left-color: var(--status-pending-fg);
+}
+
+.payment-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.payment-card__amount {
+  margin-top: var(--space-xs);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-card__meta {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.payment-card__figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+  margin: var(--space-sm) 0 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.payment-card__wide {
+  grid-column: 1 / -1;
+}
+
+.payment-card__figures dt {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.payment-card__figures dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .payment-table-wrap {
+    display: none;
+  }
+
+  .payment-cards {
+    display: grid;
+  }
+}

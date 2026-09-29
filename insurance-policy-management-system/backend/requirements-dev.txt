@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest>=9.1,<10
+# Required by FastAPI's TestClient.
+httpx>=0.28,<0.29
+ruff>=0.16,<0.17

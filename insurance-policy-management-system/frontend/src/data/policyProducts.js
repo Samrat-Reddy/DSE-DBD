@@ -1,0 +1,372 @@
+/**
+ * Mock policy product catalog.
+ *
+ * ILLUSTRATIVE DATA ONLY — these products are invented for a university
+ * frontend demonstration and do not represent any real insurer, product, or
+ * price. Figures are indicative and carry no underwriting meaning.
+ *
+ * The shape mirrors what a FastAPI `/policy-products` response is expected to
+ * return, so swapping this file for a live call is a service-layer change.
+ */
+
+import {
+  POLICY_TYPES,
+  PREMIUM_FREQUENCIES,
+  PRODUCT_STATUS,
+} from '../utils/constants'
+
+export const policyProducts = [
+  {
+    id: 'PRD-HLT-001',
+    name: 'Secure Health Shield',
+    type: POLICY_TYPES.HEALTH,
+    status: PRODUCT_STATUS.ACTIVE,
+    tagline: 'Comprehensive family floater with cashless hospital network',
+    description:
+      'A family floater indemnity plan covering hospitalisation, day-care procedures and pre/post hospitalisation expenses, with access to a cashless network hospital list.',
+    coverageAmount: 1000000,
+    coverageRange: { min: 300000, max: 5000000 },
+    premium: 18500,
+    premiumFrequency: PREMIUM_FREQUENCIES.ANNUAL,
+    availableFrequencies: [
+      PREMIUM_FREQUENCIES.MONTHLY,
+      PREMIUM_FREQUENCIES.QUARTERLY,
+      PREMIUM_FREQUENCIES.ANNUAL,
+    ],
+    durationYears: 1,
+    availableDurations: [1, 2, 3],
+    waitingPeriod: '30 days (initial), 24 months (pre-existing conditions)',
+    eligibility: {
+      minAge: 18,
+      maxAge: 65,
+      summary: 'Adults aged 18-65. Dependent children covered from 91 days.',
+      criteria: [
+        'Proposer must be aged between 18 and 65 years',
+        'Medical screening required above 45 years of age',
+        'Dependent children eligible from 91 days to 25 years',
+      ],
+    },
+    benefits: [
+      'Cashless treatment at network hospitals',
+      'Pre-hospitalisation cover for 60 days',
+      'Post-hospitalisation cover for 90 days',
+      'Annual preventive health check-up',
+      'No-claim bonus of 10% per claim-free year',
+    ],
+    coverageItems: [
+      { name: 'In-patient hospitalisation', limit: 'Up to sum insured' },
+      { name: 'Pre-hospitalisation', limit: '60 days before admission' },
+      { name: 'Post-hospitalisation', limit: '90 days after discharge' },
+      { name: 'Day-care procedures', limit: 'Up to sum insured' },
+      { name: 'Ambulance charges', limit: 'Rs. 2,000 per hospitalisation' },
+      { name: 'Room rent', limit: '1% of sum insured per day' },
+    ],
+    exclusions: [
+      'Pre-existing diseases during the first 24 months',
+      'Cosmetic or aesthetic treatment',
+      'Self-inflicted injury and substance abuse',
+      'Treatment taken outside India',
+      'Dental treatment unless arising from an accident',
+    ],
+  },
+  {
+    id: 'PRD-LIF-002',
+    name: 'LifeSecure Term Plan',
+    type: POLICY_TYPES.LIFE,
+    status: PRODUCT_STATUS.ACTIVE,
+    tagline: 'Pure protection term cover with a high sum assured',
+    description:
+      'A pure-risk term assurance plan that pays the sum assured to the nominee on death of the life assured during the policy term. No maturity benefit is payable.',
+    coverageAmount: 5000000,
+    coverageRange: { min: 1000000, max: 20000000 },
+    premium: 12400,
+    premiumFrequency: PREMIUM_FREQUENCIES.ANNUAL,
+    availableFrequencies: [
+      PREMIUM_FREQUENCIES.MONTHLY,
+      PREMIUM_FREQUENCIES.QUARTERLY,
+      PREMIUM_FREQUENCIES.HALF_YEARLY,
+      PREMIUM_FREQUENCIES.ANNUAL,
+    ],
+    durationYears: 20,
+    availableDurations: [10, 15, 20, 25, 30],
+    waitingPeriod: '12 months for the suicide exclusion',
+    eligibility: {
+      minAge: 18,
+      maxAge: 60,
+      summary: 'Adults aged 18-60 with proof of income and medical clearance.',
+      criteria: [
+        'Entry age between 18 and 60 years',
+        'Maximum maturity age of 75 years',
+        'Income proof mandatory for a sum assured above Rs. 50,00,000',
+        'Tele-medical or full medical underwriting applies',
+      ],
+    },
+    benefits: [
+      'High sum assured at a low premium',
+      'Nominee receives a lump-sum death benefit',
+      'Optional accidental death benefit rider',
+      'Premium remains level for the full term',
+      'Tax benefits as per prevailing law',
+    ],
+    coverageItems: [
+      { name: 'Death benefit', limit: '100% of sum assured' },
+      { name: 'Terminal illness benefit', limit: 'Up to Rs. 20,00,000' },
+      { name: 'Accidental death rider', limit: 'Optional, up to sum assured' },
+      { name: 'Waiver of premium rider', limit: 'Optional' },
+    ],
+    exclusions: [
+      'Suicide within 12 months of policy commencement',
+      'Death due to participation in criminal activity',
+      'Non-disclosure or misrepresentation of material facts',
+      'Death while engaging in hazardous sports, unless declared',
+    ],
+  },
+  {
+    id: 'PRD-MOT-003',
+    name: 'DriveSafe Motor Package',
+    type: POLICY_TYPES.MOTOR,
+    status: PRODUCT_STATUS.ACTIVE,
+    tagline: 'Own-damage and third-party package cover for private cars',
+    description:
+      'A package motor policy combining mandatory third-party liability with own-damage cover for private cars, including theft and natural calamity protection.',
+    coverageAmount: 800000,
+    coverageRange: { min: 200000, max: 3000000 },
+    premium: 14200,
+    premiumFrequency: PREMIUM_FREQUENCIES.ANNUAL,
+    availableFrequencies: [PREMIUM_FREQUENCIES.ANNUAL],
+    durationYears: 1,
+    availableDurations: [1, 3],
+    waitingPeriod: 'Not applicable',
+    eligibility: {
+      minAge: 18,
+      maxAge: 70,
+      summary: 'Registered owner holding a valid driving licence.',
+      criteria: [
+        'Valid vehicle registration certificate required',
+        'Valid driving licence of the registered owner',
+        'Vehicle inspection required for break-in renewals',
+        'Private cars up to 15 years of age',
+      ],
+    },
+    benefits: [
+      'Third-party liability cover as mandated by law',
+      'Own-damage cover including fire and theft',
+      'Natural calamity and riot damage protection',
+      '24x7 roadside assistance',
+      'No-claim bonus of up to 50%',
+    ],
+    coverageItems: [
+      { name: 'Third-party bodily injury', limit: 'Unlimited (statutory)' },
+      { name: 'Third-party property damage', limit: 'Rs. 7,50,000' },
+      { name: 'Own damage', limit: 'Up to insured declared value' },
+      { name: 'Theft of vehicle', limit: 'Up to insured declared value' },
+      { name: 'Personal accident (owner-driver)', limit: 'Rs. 15,00,000' },
+    ],
+    exclusions: [
+      'Driving without a valid licence',
+      'Driving under the influence of alcohol or drugs',
+      'Normal wear, tear and mechanical breakdown',
+      'Use of a private vehicle for commercial hire',
+      'Consequential loss and depreciation',
+    ],
+  },
+  {
+    id: 'PRD-ACC-004',
+    name: 'SafeGuard Personal Accident',
+    type: POLICY_TYPES.PERSONAL_ACCIDENT,
+    status: PRODUCT_STATUS.ACTIVE,
+    tagline: 'Accidental death and disability cover with a weekly benefit',
+    description:
+      'A benefit-based personal accident plan paying a fixed sum on accidental death, permanent disability, or temporary total disablement.',
+    coverageAmount: 2000000,
+    coverageRange: { min: 500000, max: 10000000 },
+    premium: 4800,
+    premiumFrequency: PREMIUM_FREQUENCIES.ANNUAL,
+    availableFrequencies: [
+      PREMIUM_FREQUENCIES.QUARTERLY,
+      PREMIUM_FREQUENCIES.HALF_YEARLY,
+      PREMIUM_FREQUENCIES.ANNUAL,
+    ],
+    durationYears: 1,
+    availableDurations: [1, 2, 3],
+    waitingPeriod: 'Not applicable',
+    eligibility: {
+      minAge: 18,
+      maxAge: 70,
+      summary: 'Working adults aged 18-70 across defined occupation classes.',
+      criteria: [
+        'Entry age between 18 and 70 years',
+        'Occupation classification determines the premium rate',
+        'No medical examination required',
+      ],
+    },
+    benefits: [
+      'Lump-sum payout on accidental death',
+      'Permanent total and partial disability cover',
+      'Weekly benefit during temporary disablement',
+      'Education grant for dependent children',
+      'Worldwide coverage, 24 hours a day',
+    ],
+    coverageItems: [
+      { name: 'Accidental death', limit: '100% of sum insured' },
+      { name: 'Permanent total disability', limit: '100% of sum insured' },
+      { name: 'Permanent partial disability', limit: 'As per benefit table' },
+      {
+        name: 'Temporary total disablement',
+        limit: '1% weekly, up to 100 weeks',
+      },
+      { name: 'Child education grant', limit: 'Rs. 1,00,000 per child' },
+    ],
+    exclusions: [
+      'Self-inflicted injury or attempted suicide',
+      'Injury sustained under the influence of intoxicants',
+      'Participation in war or nuclear risks',
+      'Pre-existing disability',
+      'Injury arising from professional hazardous sports',
+    ],
+  },
+  {
+    id: 'PRD-HOM-005',
+    name: 'HomeShield Property Cover',
+    type: POLICY_TYPES.HOME,
+    status: PRODUCT_STATUS.ACTIVE,
+    tagline: 'Structure and contents protection against fire, flood and theft',
+    description:
+      'A householder package policy insuring the building structure and its contents against fire, flood, earthquake, burglary and allied perils.',
+    coverageAmount: 3500000,
+    coverageRange: { min: 500000, max: 15000000 },
+    premium: 9600,
+    premiumFrequency: PREMIUM_FREQUENCIES.ANNUAL,
+    availableFrequencies: [
+      PREMIUM_FREQUENCIES.HALF_YEARLY,
+      PREMIUM_FREQUENCIES.ANNUAL,
+    ],
+    durationYears: 1,
+    availableDurations: [1, 3, 5],
+    waitingPeriod: '15 days from policy commencement',
+    eligibility: {
+      minAge: 18,
+      maxAge: 75,
+      summary: 'Owners or tenants of a residential property in India.',
+      criteria: [
+        'Proposer must own or legally occupy the property',
+        'Property must be residential, non-commercial premises',
+        'Valuation certificate required above Rs. 1,00,00,000',
+      ],
+    },
+    benefits: [
+      'Building structure cover on a reinstatement basis',
+      'Contents cover including electronics and appliances',
+      'Burglary and theft protection',
+      'Temporary accommodation expenses',
+      'Public liability cover for the insured premises',
+    ],
+    coverageItems: [
+      { name: 'Building structure', limit: 'Up to sum insured' },
+      { name: 'Household contents', limit: '20% of sum insured' },
+      { name: 'Portable electronics', limit: 'Rs. 2,00,000' },
+      { name: 'Jewellery and valuables', limit: 'Rs. 5,00,000, if declared' },
+      { name: 'Alternative accommodation', limit: 'Rs. 50,000 per month' },
+    ],
+    exclusions: [
+      'Wilful destruction of property',
+      'Wear, tear and gradual deterioration',
+      'Loss of cash unless specifically declared',
+      'Property left unoccupied beyond 60 consecutive days',
+      'Damage arising from faulty construction',
+    ],
+  },
+  {
+    id: 'PRD-HLT-006',
+    name: 'Senior Care Health Plan',
+    type: POLICY_TYPES.HEALTH,
+    status: PRODUCT_STATUS.INACTIVE,
+    tagline: 'Withdrawn from sale - serviced for existing policyholders only',
+    description:
+      'A senior-citizen health plan withdrawn from new sales. Existing policies continue to be serviced until their natural expiry.',
+    coverageAmount: 500000,
+    coverageRange: { min: 200000, max: 1000000 },
+    premium: 26400,
+    premiumFrequency: PREMIUM_FREQUENCIES.ANNUAL,
+    availableFrequencies: [PREMIUM_FREQUENCIES.ANNUAL],
+    durationYears: 1,
+    availableDurations: [1],
+    waitingPeriod: '30 days (initial), 24 months (pre-existing conditions)',
+    eligibility: {
+      minAge: 60,
+      maxAge: 80,
+      summary: 'Closed to new business. Renewals only for existing members.',
+      criteria: [
+        'Entry age between 60 and 80 years',
+        'Closed to fresh proposals from the current financial year',
+        'Renewal permitted for policies issued before withdrawal',
+      ],
+    },
+    benefits: [
+      'Hospitalisation cover tailored to senior citizens',
+      'Domiciliary treatment cover',
+      'Pre-existing conditions covered after the waiting period',
+      'Annual specialist consultation allowance',
+    ],
+    coverageItems: [
+      { name: 'In-patient hospitalisation', limit: 'Up to sum insured' },
+      { name: 'Domiciliary treatment', limit: '10% of sum insured' },
+      { name: 'Specialist consultation', limit: 'Rs. 10,000 per year' },
+      { name: 'Ambulance charges', limit: 'Rs. 1,500 per hospitalisation' },
+    ],
+    exclusions: [
+      'Pre-existing diseases during the first 24 months',
+      'Age-related degenerative conditions in the first year',
+      'Non-allopathic treatment',
+      'Cosmetic and obesity-related treatment',
+    ],
+  },
+  {
+    id: 'PRD-LIF-007',
+    name: 'Wealth Builder Endowment',
+    type: POLICY_TYPES.LIFE,
+    status: PRODUCT_STATUS.INACTIVE,
+    tagline: 'Legacy savings plan - no longer open for new proposals',
+    description:
+      'A participating endowment plan combining life cover with a guaranteed maturity benefit. Retired from the active catalogue and retained for servicing.',
+    coverageAmount: 1500000,
+    coverageRange: { min: 500000, max: 5000000 },
+    premium: 48000,
+    premiumFrequency: PREMIUM_FREQUENCIES.ANNUAL,
+    availableFrequencies: [
+      PREMIUM_FREQUENCIES.HALF_YEARLY,
+      PREMIUM_FREQUENCIES.ANNUAL,
+    ],
+    durationYears: 15,
+    availableDurations: [15, 20],
+    waitingPeriod: '12 months for the suicide exclusion',
+    eligibility: {
+      minAge: 18,
+      maxAge: 55,
+      summary: 'Closed to new business. Existing policies continue in force.',
+      criteria: [
+        'Entry age between 18 and 55 years',
+        'Closed to fresh proposals',
+        'Existing policies continue until maturity',
+      ],
+    },
+    benefits: [
+      'Guaranteed maturity benefit',
+      'Life cover throughout the policy term',
+      'Participation in declared bonuses',
+      'Loan facility after three full years of premium',
+    ],
+    coverageItems: [
+      { name: 'Death benefit', limit: 'Sum assured plus accrued bonus' },
+      { name: 'Maturity benefit', limit: 'Sum assured plus accrued bonus' },
+      { name: 'Policy loan', limit: 'Up to 80% of surrender value' },
+    ],
+    exclusions: [
+      'Suicide within 12 months of policy commencement',
+      'Material misrepresentation at proposal stage',
+      'Lapse due to non-payment beyond the grace period',
+    ],
+  },
+]
+
+export default policyProducts

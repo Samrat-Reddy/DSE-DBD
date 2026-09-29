@@ -1,0 +1,186 @@
+/* ---------- Shared cell typography ---------- */
+.account-list__id {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.account-list__primary {
+  display: block;
+  font-weight: 600;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.account-list__secondary {
+  display: block;
+  margin-top: 0.0625rem;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.account-list__overdue {
+  display: block;
+  margin-top: 0.0625rem;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--status-expired-fg);
+}
+
+.account-progress {
+  display: block;
+  width: 100%;
+  max-width: 7rem;
+  height: 0.3125rem;
+  margin-top: 0.375rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+.account-progress__fill {
+  display: block;
+  height: 100%;
+  background-color: var(--status-active-fg);
+}
+
+/* ---------- Desktop table ---------- */
+.account-table-wrap {
+  overflow-x: auto;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.account-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.account-table thead th {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.account-table tbody th,
+.account-table tbody td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.account-table tbody tr:last-child th,
+.account-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.account-table tbody tr:hover {
+  background-color: var(--color-primary-soft);
+}
+
+.account-table .account-table__numeric {
+  text-align: right;
+}
+
+.account-table__action {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Overdue rows carry an accent rail so they stand out while scanning. */
+.account-table__row--overdue th {
+  box-shadow: inset 3px 0 0 var(--status-expired-fg);
+}
+
+/* ---------- Mobile cards ---------- */
+.account-cards {
+  display: none;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-md);
+}
+
+.account-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.account-card--overdue {
+  border-left: 4px solid var(--status-expired-fg);
+}
+
+.account-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.account-card__product {
+  margin: 0;
+  font-weight: 600;
+}
+
+.account-card__holder {
+  margin: 0.125rem 0 var(--space-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.account-card__figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+  margin: 0 0 var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.account-card__figures dt {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.account-card__figures dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .account-table-wrap {
+    display: none;
+  }
+
+  .account-cards {
+    display: grid;
+  }
+}

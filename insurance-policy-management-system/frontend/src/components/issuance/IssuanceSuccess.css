@@ -1,0 +1,111 @@
+.issuance-success {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-lg);
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.issuance-success__banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background-color: var(--status-active-bg);
+  border: 1px solid var(--status-active-border);
+}
+
+.issuance-success__check {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: var(--status-active-fg);
+  color: #fff;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.issuance-success__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--status-active-fg);
+}
+
+.issuance-success__subtitle {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.issuance-success__number {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  background-color: var(--color-navy);
+  color: var(--color-text-inverse);
+}
+
+.issuance-success__number-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  width: 100%;
+}
+
+.issuance-success__number-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  letter-spacing: 0.02em;
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+
+.issuance-success__panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.issuance-success__panel-title {
+  margin: 0 0 var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.issuance-success__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.issuance-success__note {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 620px) {
+  .issuance-success {
+    padding: var(--space-md);
+  }
+
+  .issuance-success__actions .ui-button {
+    width: 100%;
+  }
+}

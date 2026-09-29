@@ -1,0 +1,154 @@
+.lifecycle {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lifecycle__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+.lifecycle__marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lifecycle__dot {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-strong);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.lifecycle__line {
+  flex: 1;
+  width: 2px;
+  min-height: 1.5rem;
+  background-color: var(--color-border-strong);
+  margin: 0.25rem 0;
+}
+
+.lifecycle__content {
+  padding-bottom: var(--space-lg);
+  min-width: 0;
+}
+
+.lifecycle__item:last-child .lifecycle__content {
+  padding-bottom: 0;
+}
+
+.lifecycle__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.lifecycle__stage {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.lifecycle__state {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  padding: 0.125rem 0.5rem;
+  border: 1px solid;
+}
+
+.lifecycle__state--completed {
+  color: var(--status-active-fg);
+  background-color: var(--status-active-bg);
+  border-color: var(--status-active-border);
+}
+
+.lifecycle__state--current {
+  color: var(--status-pending-fg);
+  background-color: var(--status-pending-bg);
+  border-color: var(--status-pending-border);
+}
+
+.lifecycle__state--upcoming {
+  color: var(--status-inactive-fg);
+  background-color: var(--status-inactive-bg);
+  border-color: var(--status-inactive-border);
+}
+
+.lifecycle__date {
+  margin: 0.1875rem 0 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.lifecycle__note {
+  margin: 0.25rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ---- Completed ---- */
+.lifecycle__item--completed .lifecycle__dot {
+  background-color: var(--status-active-fg);
+  border-color: var(--status-active-fg);
+  color: #fff;
+}
+
+.lifecycle__item--completed .lifecycle__line {
+  background-color: var(--status-active-fg);
+}
+
+/* ---- Current ---- */
+.lifecycle__item--current .lifecycle__dot {
+  border-color: var(--status-pending-fg);
+  color: var(--status-pending-fg);
+  box-shadow: 0 0 0 3px var(--status-pending-bg);
+}
+
+/* ---- Upcoming ---- */
+.lifecycle__item--upcoming .lifecycle__dot {
+  border-style: dashed;
+}
+
+.lifecycle__item--upcoming .lifecycle__stage,
+.lifecycle__item--upcoming .lifecycle__date {
+  color: var(--color-text-muted);
+}
+
+.lifecycle__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ---- Terminated (Module 3: rejected or cancelled claim) ---- */
+.lifecycle__item--terminated .lifecycle__dot {
+  background-color: var(--status-expired-fg);
+  border-color: var(--status-expired-fg);
+  color: #fff;
+  font-size: var(--text-md);
+}
+
+.lifecycle__state--terminated {
+  color: var(--status-expired-fg);
+  background-color: var(--status-expired-bg);
+  border-color: var(--status-expired-border);
+}
+
+.lifecycle__item--terminated .lifecycle__stage {
+  color: var(--status-expired-fg);
+}

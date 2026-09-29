@@ -1,0 +1,196 @@
+.commission-list__id,
+.commission-list__mono-link {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.commission-list__mono-link {
+  font-weight: 600;
+}
+
+.commission-list__primary {
+  display: block;
+  font-weight: 600;
+}
+
+.commission-list__secondary {
+  display: block;
+  margin-top: 0.0625rem;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.commission-list__mono {
+  display: block;
+  margin-top: 0.0625rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.commission-list__amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.commission-list__nowrap {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.commission-list__warning {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--status-expired-fg);
+}
+
+/* ---------- Desktop table ---------- */
+.commission-table-wrap {
+  overflow-x: auto;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.commission-table {
+  width: 100%;
+  min-width: 1040px;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.commission-table thead th {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.commission-table tbody th,
+.commission-table tbody td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.commission-table tbody tr:last-child th,
+.commission-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.commission-table tbody tr:hover {
+  background-color: var(--color-primary-soft);
+}
+
+.commission-table .commission-table__numeric {
+  text-align: right;
+}
+
+.commission-table__action {
+  text-align: right;
+}
+
+/* ---------- Mobile cards ---------- */
+.commission-cards {
+  display: none;
+  grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-md);
+}
+
+.commission-card {
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--status-pending-fg);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.commission-card--earned {
+  border-left-color: var(--status-info-fg);
+}
+
+.commission-card--paid {
+  border-left-color: var(--status-active-fg);
+}
+
+.commission-card__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.commission-card__amount {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.commission-card__meta {
+  margin: 0.125rem 0 var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.commission-card__figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+  margin: 0 0 var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.commission-card__figures dt {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.commission-card__figures dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .commission-table-wrap {
+    display: none;
+  }
+
+  .commission-cards {
+    display: grid;
+  }
+}
+
+.commission-table.commission-table--compact {
+  min-width: 860px;
+}

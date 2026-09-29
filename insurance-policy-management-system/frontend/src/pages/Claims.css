@@ -1,0 +1,105 @@
+/* Page-level layout shared by the Module 3 pages. */
+
+.claims__stack {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.claims__summary {
+  margin-bottom: var(--space-lg);
+}
+
+.claims__section-title {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.claims__section-title--spaced {
+  margin-top: var(--space-xl);
+}
+
+.claims__identifier {
+  padding: 0.125rem 0.4375rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.claims__role-note {
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--status-info-border);
+  border-radius: var(--radius-md);
+  background-color: var(--status-info-bg);
+  font-size: var(--text-sm);
+  color: var(--color-primary-dark);
+}
+
+.claims__feedback {
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+.claims__feedback:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.claims__feedback--success {
+  border: 1px solid var(--status-active-border);
+  border-left: 4px solid var(--status-active-fg);
+  background-color: var(--status-active-bg);
+  color: var(--status-active-fg);
+}
+
+.claims__rejection {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-left: 4px solid var(--status-expired-fg);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background-color: var(--status-expired-bg);
+  color: #7f1d1d;
+}
+
+.claims__footnote {
+  margin: var(--space-md) 0 0;
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.claims__centered-action {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-lg);
+}
+
+/* ---------- Details layout ---------- */
+.claim-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.claim-detail__main,
+.claim-detail__aside {
+  display: grid;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+@media (max-width: 1080px) {
+  .claim-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

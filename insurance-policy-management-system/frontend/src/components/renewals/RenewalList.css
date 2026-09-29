@@ -1,0 +1,187 @@
+.renewal-list__id {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.renewal-list__primary {
+  display: block;
+  font-weight: 600;
+}
+
+.renewal-list__secondary {
+  display: block;
+  margin-top: 0.0625rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.renewal-list__secondary-text {
+  display: block;
+  margin-top: 0.0625rem;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.renewal-list__muted {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.renewal-list__nowrap {
+  white-space: nowrap;
+}
+
+.renewal-list__due-now {
+  color: var(--status-pending-fg);
+}
+
+.renewal-list__stack .status-badge {
+  margin-top: 0.25rem;
+}
+
+/* ---------- Desktop table ---------- */
+.renewal-table-wrap {
+  overflow-x: auto;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.renewal-table {
+  width: 100%;
+  min-width: 1040px;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.renewal-table thead th {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.renewal-table tbody th,
+.renewal-table tbody td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.renewal-table tbody tr:last-child th,
+.renewal-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.renewal-table tbody tr:hover {
+  background-color: var(--color-primary-soft);
+}
+
+.renewal-table__action {
+  text-align: right;
+}
+
+/* ---------- Mobile cards ---------- */
+.renewal-cards {
+  display: none;
+  grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-md);
+}
+
+.renewal-card {
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--status-info-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.renewal-card--due-soon,
+.renewal-card--due {
+  border-left-color: var(--status-pending-fg);
+}
+
+.renewal-card--expiring-today,
+.renewal-card--expired {
+  border-left-color: var(--status-expired-fg);
+}
+
+.renewal-card--not-due,
+.renewal-card--expiry-unknown {
+  border-left-color: var(--color-border-strong);
+}
+
+.renewal-card__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.renewal-card__product {
+  margin: var(--space-xs) 0 0;
+  font-weight: 600;
+}
+
+.renewal-card__holder {
+  margin: 0.125rem 0 var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.renewal-card__figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+  margin: 0 0 var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.renewal-card__figures dt {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.renewal-card__figures dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .renewal-table-wrap {
+    display: none;
+  }
+
+  .renewal-cards {
+    display: grid;
+  }
+}

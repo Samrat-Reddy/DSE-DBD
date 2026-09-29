@@ -1,0 +1,10 @@
+/* The issuance workflow reads better in a narrower measure than the full
+   content width, so the form does not stretch across a wide monitor. */
+.issuance {
+  max-width: 960px;
+}
+
+.steps,
+.issuance__panel {
+  max-width: 100%;
+}
