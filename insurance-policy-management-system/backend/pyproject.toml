@@ -23,4 +23,6 @@ ignore = ["S101"]  # assert is how pytest works
 known-third-party = ["alembic"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S105", "S106"]  # dummy credentials in test URLs
+# S105/S106: dummy credentials in test URLs. S608: tests run constant raw SQL on
+# purpose, to prove MySQL itself enforces the integrity rules.
+"tests/**" = ["S105", "S106", "S608"]

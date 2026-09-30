@@ -1,237 +1,278 @@
 /**
- * Claim Filing & Approval Workflow service.
+ * Claim Filing & Approval Workflow service (Module 3) — backed by the FastAPI API.
  *
- *   React  ->  claimService  ->  mock claim store / data   (today)
- *   React  ->  claimService  ->  FastAPI  ->  MySQL         (later)
+ *   React  ->  claimService  ->  authApi (JWT)  ->  FastAPI  ->  MySQL
  *
- * Every read and every change goes through here. The service is the
- * enforcement boundary: it re-checks eligibility, form rules, the workflow
- * state machine and the demo role on every call, whatever the UI showed.
+ * Every Module 3 screen reads and writes through this file only, and it holds
+ * no claim data of its own: claims, their workflow history, verification,
+ * assessment, decisions and settlements all come from MySQL. The backend is
+ * the enforcement boundary (scope, eligibility, the state machine, each
+ * step's rules, locking); this file only translates the API contract into the
+ * shapes the existing screens render.
  *
- * Errors are `ApiError`s with a stable `data.reason`:
- *   404  claim-not-found, policy-not-found
- *   403  unauthorized-transition, unauthorized-filing
- *   409  invalid-transition, policy-not-eligible, already-settled
- *   422  invalid-claim, dedicated-action-required, verification-checks-failed,
- *        invalid-assessment, assessment-required, rejection-reason-required,
- *        unknown-status, invalid-actor
+ * `actor` arguments are kept for signature compatibility and ignored: the
+ * backend identifies the caller from the JWT, never from the request.
  *
- * All validation runs synchronously before the simulated latency, so a double
- * submission sees the first change and is rejected.
+ * Module 6 (MIS) still reads `mockClaimLedger` until its own migration.
  */
 
 import { ApiError } from './apiClient'
-import { claimTypes } from '../data/claimTypes'
-import { policyProducts } from '../data/policyProducts'
-import { findPolicyById, getAllPolicies } from './mockPolicyStore'
-import { getPremiumAccountSnapshot } from './mockPremiumLedger'
-import {
-  findClaimById,
-  generateClaimId,
-  generateSettlementReference,
-  getAllClaims,
-  saveClaim,
-} from './mockClaimStore'
-import {
-  ClaimWorkflowError,
-  WORKFLOW_ERROR_CODES,
-  applyTransition,
-  assertTransition,
-  getAllowedTransitions,
-  getTransitionRule,
-  getWorkflowStages,
-  resolveActor,
-} from '../utils/claimWorkflow'
-import { evaluateClaimEligibility, findClaimType, getCompatibleClaimTypes } from '../utils/claimEligibility'
-import { buildDocumentRecords, validateClaimForm } from '../utils/claimValidation'
-import {
-  buildDecisionSummary,
-  buildVerificationChecklist,
-  calculateIllustrativeLimit,
-  checkApprovalReadiness,
-  validateAssessment,
-  validateRejectionReason,
-} from '../utils/claimAssessment'
-import { queryClaims, summariseClaims } from '../utils/claimQuery'
-import { todayIso } from '../utils/dateUtils'
-import { formatCurrency } from '../utils/formatters'
-import { CLAIM_STATUS, ROLES, ROLES_ALLOWED_TO_FILE_CLAIM } from '../utils/constants'
+import { authApi } from './authSession'
+import { ENDPOINTS } from './endpoints'
+import { getAllowedTransitions, getTransitionRule, getWorkflowStages } from '../utils/claimWorkflow'
+import { documentFieldKey } from '../utils/claimValidation'
+import { PAYMENT_STANDING, POLICY_TYPES } from '../utils/constants'
 
-const S = CLAIM_STATUS
+/** Lists have no paging UI yet; this is the API's maximum page size. */
+const LIST_LIMIT = 200
 
-/** Same deliberate delay as the other services, so loading states are real. */
-const MOCK_LATENCY_MS = 220
+const TYPE_LABELS = {
+  health: POLICY_TYPES.HEALTH,
+  life: POLICY_TYPES.LIFE,
+  motor: POLICY_TYPES.MOTOR,
+  personal_accident: POLICY_TYPES.PERSONAL_ACCIDENT,
+  home: POLICY_TYPES.HOME,
+}
+const STANDING_LABELS = {
+  overdue: PAYMENT_STANDING.OVERDUE,
+  due: PAYMENT_STANDING.DUE,
+  up_to_date: PAYMENT_STANDING.UP_TO_DATE,
+  fully_paid: PAYMENT_STANDING.FULLY_PAID,
+}
 
-const withMockLatency = (value) =>
-  new Promise((resolve) => {
-    setTimeout(() => resolve(value), MOCK_LATENCY_MS)
-  })
-
-const clone = (value) => JSON.parse(JSON.stringify(value))
-
-const nowIso = () => new Date().toISOString()
+/** API codes are snake_case, the UI's are kebab-case ("under_review" <-> "under-review"). */
+const toUiCode = (value) => (value ? String(value).replaceAll('_', '-') : value)
+const toApiCode = (value) => (value ? String(value).replaceAll('-', '_') : value)
+const toNumber = (value) => (value === null || value === undefined ? null : Number(value))
+const filterValue = (value) => (!value || value === 'all' ? undefined : value)
 
 /* ------------------------------------------------------------------ */
-/* Internal helpers                                                    */
+/* API -> UI shapes                                                    */
 /* ------------------------------------------------------------------ */
 
-const findProduct = (policy) =>
-  policy ? policyProducts.find((product) => product.id === policy.productId) ?? null : null
+const toActor = (actor) => (actor ? { name: actor.name, role: actor.role } : null)
 
-const policyNotFound = (policyId) =>
-  new ApiError(`No issued policy found for "${policyId}".`, {
-    status: 404,
-    data: { reason: 'policy-not-found', policyId },
-  })
+const toLimit = (limit) => ({
+  limit: toNumber(limit.limit),
+  coverageAmount: toNumber(limit.coverage_amount),
+  percentOfCoverage: limit.percent_of_coverage,
+  maxAmount: toNumber(limit.max_amount),
+  basis: limit.basis,
+  cappedByMaximum: limit.capped_by_maximum,
+})
 
-const requireClaim = (claimId) => {
-  const claim = findClaimById(claimId)
-  if (!claim) {
-    throw new ApiError(`No claim found for "${claimId}".`, {
-      status: 404,
-      data: { reason: 'claim-not-found', claimId },
-    })
-  }
-  return claim
-}
+const toClaimType = (type) => ({
+  value: type.code,
+  label: type.label,
+  policyType: TYPE_LABELS[type.product_type] ?? type.product_type,
+  coverageItem: type.coverage_item,
+  limitRule: { percentOfCoverage: type.percent_of_coverage, maxAmount: toNumber(type.max_amount) },
+  limitBasis: type.limit_basis,
+  description: type.description,
+  requiredDocuments: type.documents.map((doc) => ({
+    type: doc.doc_type,
+    label: doc.label,
+    suggestedName: doc.suggested_name,
+    required: doc.required,
+  })),
+  ...(type.illustrative_limit ? { illustrativeLimit: toLimit(type.illustrative_limit) } : {}),
+})
 
-const requireActor = (actor, policy) => {
-  if (!Object.values(ROLES).includes(actor?.role)) {
-    throw new ApiError('A valid demo role is required to change a claim.', {
-      status: 403,
-      data: { reason: 'invalid-actor' },
-    })
-  }
-  // Names are always resolved from the role and policy, never trusted from input.
-  return resolveActor(actor.role, policy)
-}
+const toPolicy = (policy) => ({
+  id: policy.policy_number,
+  productId: policy.product_code,
+  productName: policy.product_name,
+  type: TYPE_LABELS[policy.product_type] ?? policy.product_type,
+  status: policy.status,
+  coverageAmount: toNumber(policy.coverage_amount),
+  startDate: policy.start_date,
+  endDate: policy.end_date,
+  issueDate: policy.issue_date,
+  policyholderName: policy.policyholder_name,
+  customerId: policy.customer_code,
+  agentName: policy.agent_name,
+})
 
-const toApiError = (error) => {
-  if (!(error instanceof ClaimWorkflowError)) return error
-  const status =
-    error.code === WORKFLOW_ERROR_CODES.UNAUTHORIZED_TRANSITION
-      ? 403
-      : error.code === WORKFLOW_ERROR_CODES.UNKNOWN_STATUS
-        ? 422
-        : 409
-  return new ApiError(error.message, {
-    status,
-    data: { reason: error.code, from: error.from, to: error.to, role: error.role },
-  })
-}
+const toEligibility = (eligibility) => ({
+  eligible: eligibility.eligible,
+  checks: eligibility.checks.map((check) => ({ ...check })),
+  reasons: eligibility.reasons,
+  warnings: eligibility.warnings,
+  compatibleClaimTypes: eligibility.compatible_claim_types,
+  incidentWindow: eligibility.incident_earliest
+    ? { earliest: eligibility.incident_earliest, latest: eligibility.incident_latest }
+    : null,
+  filingDeadline: eligibility.filing_deadline,
+})
 
-const toPolicySnapshot = (policy) =>
-  policy
-    ? {
-        id: policy.id,
-        productId: policy.productId,
-        productName: policy.productName,
-        type: policy.type,
-        status: policy.status,
-        coverageAmount: policy.coverageAmount,
-        startDate: policy.startDate,
-        endDate: policy.endDate,
-        issueDate: policy.issueDate,
-        policyholderName: policy.policyholder?.name ?? null,
-        customerId: policy.policyholder?.customerId ?? null,
-        agentName: policy.agent?.name ?? null,
-      }
-    : null
+const toEvent = (claimNumber) => (event) => ({
+  eventId: `${claimNumber}-E${event.sequence_no}`,
+  at: event.occurred_at,
+  action: toUiCode(event.action),
+  label: event.label,
+  fromStatus: toUiCode(event.from_status),
+  toStatus: toUiCode(event.to_status),
+  actor: toActor(event.actor),
+  note: event.note,
+})
 
-/** Claim plus the display fields list views need. */
-const enrichClaim = (claim) => {
-  const policy = findPolicyById(claim.policyId)
-  const claimType = findClaimType(claim.claimType, claimTypes)
+const toClaimSummary = (claim) => ({
+  claimId: claim.claim_number,
+  policyId: claim.policy_number,
+  policyholderId: claim.customer_code,
+  policyholderName: claim.policyholder_name,
+  productName: claim.product_name,
+  claimType: claim.claim_type,
+  claimTypeLabel: claim.claim_type_label,
+  incidentDate: claim.incident_date,
+  filingDate: claim.filing_date,
+  claimedAmount: toNumber(claim.claimed_amount),
+  approvedAmount: toNumber(claim.approved_amount),
+  status: toUiCode(claim.status),
+  filedBy: toActor(claim.filed_by),
+  assignedTo: toActor(claim.assigned_to),
+  createdAt: claim.created_at,
+  updatedAt: claim.updated_at,
+  policyExists: true,
+})
+
+const toClaim = (detail) => {
+  const number = detail.claim.claim_number
+  const decisionEvent = detail.decision?.decided_at ? detail.decision : null
   return {
-    ...claim,
-    policyholderName: policy?.policyholder?.name ?? null,
-    productName: policy?.productName ?? null,
-    claimTypeLabel: claimType?.label ?? claim.claimType,
-    policyExists: Boolean(policy),
-  }
-}
-
-/** Everything derived around one claim that its details page needs. */
-const buildClaimContext = (claim, asOf) => {
-  const policy = findPolicyById(claim.policyId)
-  const product = findProduct(policy)
-  const claimType = findClaimType(claim.claimType, claimTypes)
-  const premium = policy ? getPremiumAccountSnapshot(policy.id, asOf) : null
-  const limit = policy && claimType ? calculateIllustrativeLimit(claimType, policy.coverageAmount) : null
-  return { policy, product, claimType, premium, limit }
-}
-
-const buildClaimDetails = (claim, asOf = todayIso()) => {
-  const { policy, product, claimType, premium, limit } = buildClaimContext(claim, asOf)
-
-  return {
-    claim: enrichClaim(claim),
-    claimType,
-    policy: toPolicySnapshot(policy),
-    policyError: policy
-      ? null
-      : { status: 404, message: `The policy ${claim.policyId} for this claim could not be found.` },
-    coverage:
-      claimType && product
+    ...toClaimSummary(detail.claim),
+    description: detail.description,
+    rejectionReason: detail.rejection_reason,
+    documents: detail.documents.map((doc, index) => ({
+      documentId: `${number}-D${index + 1}`,
+      type: doc.doc_type,
+      label: doc.label,
+      fileName: doc.file_name,
+      required: doc.required,
+      status: doc.status,
+      submittedAt: doc.submitted_at,
+    })),
+    verification: detail.verification
+      ? {
+          verifiedAt: detail.verification.verified_at,
+          verifiedBy: toActor(detail.verification.verified_by),
+          checksPassed: detail.verification.checks_passed,
+          checksTotal: detail.verification.checks_total,
+          warnings: detail.verification.warnings,
+          note: detail.verification.note,
+        }
+      : null,
+    assessment: detail.assessment
+      ? {
+          assessedAmount: toNumber(detail.assessment.assessed_amount),
+          illustrativeLimit: toNumber(detail.assessment.illustrative_limit),
+          limitBasis: detail.assessment.limit_basis,
+          note: detail.assessment.note,
+          assessedAt: detail.assessment.assessed_at,
+          assessedBy: toActor(detail.assessment.assessed_by),
+        }
+      : null,
+    decision:
+      decisionEvent && ['approved', 'rejected', 'settled'].includes(detail.decision.decision)
         ? {
-            coverageItem: product.coverageItems.find((item) => item.name === claimType.coverageItem) ?? null,
-            limit,
+            outcome: detail.decision.decision === 'rejected' ? 'rejected' : 'approved',
+            reason: detail.decision.reasons.at(-1),
+            decidedAt: detail.decision.decided_at,
+            decidedBy: toActor(detail.decision.decided_by),
           }
         : null,
-    premium: premium ? premium.summary : null,
-    verificationChecklist: buildVerificationChecklist({
-      claim,
-      policy,
-      product,
-      claimType,
-      premiumSummary: premium?.summary ?? null,
-      limit,
-    }),
-    decisionSummary: buildDecisionSummary(claim),
+    settlement: detail.settlement
+      ? {
+          reference: detail.settlement.settlement_reference,
+          settledAt: detail.settlement.settled_at,
+          settledDate: detail.settlement.settled_on,
+          amount: toNumber(detail.settlement.amount),
+          settledBy: toActor(detail.settlement.settled_by),
+          note: 'Settlement recorded. No payment is made by this demonstration system.',
+        }
+      : null,
+    activity: detail.events.map(toEvent(number)),
+  }
+}
+
+const toDetails = (detail) => {
+  const claim = toClaim(detail)
+  return {
+    claim,
+    claimType: toClaimType(detail.claim_type),
+    policy: toPolicy(detail.policy),
+    policyError: null,
+    coverage: {
+      coverageItem: detail.coverage_item ? { ...detail.coverage_item } : null,
+      limit: toLimit(detail.limit),
+    },
+    premium: detail.premium
+      ? {
+          standing: STANDING_LABELS[detail.premium.standing] ?? detail.premium.standing,
+          counts: { overdue: detail.premium.overdue_count },
+          overdueAmount: toNumber(detail.premium.overdue_amount),
+          oldestOverdueDate: detail.premium.oldest_overdue_date,
+        }
+      : null,
+    verificationChecklist: { ...detail.verification_checklist },
+    decisionSummary: detail.decision
+      ? {
+          claimedAmount: toNumber(detail.decision.claimed_amount),
+          illustrativeLimit: toNumber(detail.decision.illustrative_limit),
+          limitBasis: detail.decision.limit_basis,
+          assessedAmount: toNumber(detail.decision.assessed_amount),
+          approvedAmount: toNumber(detail.decision.approved_amount),
+          decision: detail.decision.decision,
+          decisionLabel: detail.decision.decision_label,
+          reasons: detail.decision.reasons,
+        }
+      : null,
+    // Display only: the same state-machine table the backend enforces.
     workflowStages: getWorkflowStages(claim),
     allowedTransitions: getAllowedTransitions(claim.status).map((toStatus) => ({
       toStatus,
       ...getTransitionRule(claim.status, toStatus),
     })),
-    asOf,
+    asOf: detail.as_of,
   }
 }
 
-/**
- * The one path every workflow change takes:
- *   claim exists → valid actor → legal transition for that role →
- *   dedicated-action rule → payload validation → apply and save.
- */
-const runTransition = ({ claimId, toStatus, actor, note = null, dedicated = null, validate, buildPatch }) => {
-  const claim = requireClaim(claimId)
-  const context = buildClaimContext(claim, todayIso())
-  const resolvedActor = requireActor(actor, context.policy)
+/* ------------------------------------------------------------------ */
+/* Errors: API field paths -> the form keys the screens already use     */
+/* ------------------------------------------------------------------ */
 
-  let rule
+const FIELD_KEYS = {
+  'body.policy_number': 'policyId',
+  'body.claim_type': 'claimType',
+  'body.incident_date': 'incidentDate',
+  'body.claimed_amount': 'claimedAmount',
+  'body.description': 'description',
+  'body.assessed_amount': 'assessedAmount',
+  'body.note': 'note',
+  'body.reason': 'rejectionReason',
+}
+
+const toFieldKey = (field) => {
+  if (FIELD_KEYS[field]) return FIELD_KEYS[field]
+  const document = /^body\.documents\.(.+)$/.exec(field)
+  return document ? documentFieldKey(document[1]) : field
+}
+
+/** Turn the API's `errors` list into the `{ fieldKey: message }` map the forms read. */
+const withFieldErrors = (error) => {
+  if (!(error instanceof ApiError) || !Array.isArray(error.data?.errors)) return error
+  const errors = Object.fromEntries(
+    error.data.errors.map(({ field, message }) => [toFieldKey(field), message]),
+  )
+  return new ApiError(error.message, { status: error.status, data: { ...error.data, errors } })
+}
+
+const call = async (request) => {
   try {
-    rule = assertTransition(claim.status, toStatus, resolvedActor.role)
+    return await request()
   } catch (error) {
-    throw toApiError(error)
+    throw withFieldErrors(error)
   }
-
-  if (rule.dedicated && rule.dedicated !== dedicated) {
-    throw new ApiError(
-      `"${rule.label}" must be recorded through the ${rule.dedicated} step, not a direct status change.`,
-      { status: 422, data: { reason: 'dedicated-action-required', step: rule.dedicated } },
-    )
-  }
-
-  const at = nowIso()
-  validate?.(claim, { ...context, actor: resolvedActor, at })
-
-  const updated = applyTransition(claim, toStatus, resolvedActor, {
-    at,
-    note,
-    patch: buildPatch ? buildPatch(claim, { ...context, actor: resolvedActor, at }) : {},
-  })
-
-  saveClaim(updated)
-  return withMockLatency(clone(buildClaimDetails(updated)))
 }
 
 /* ------------------------------------------------------------------ */
@@ -239,390 +280,147 @@ const runTransition = ({ claimId, toStatus, actor, note = null, dedicated = null
 /* ------------------------------------------------------------------ */
 
 /**
- * Claims list with derived summary counts (always across all claims).
+ * Claims in the signed-in account's scope, with scope-wide status counts.
  *
  * @param {{search?: string, status?: string, claimType?: string, sort?: string}} query
  */
 export const getClaims = async (query = {}) => {
-  // Future: return apiClient.get(ENDPOINTS.claims, { params: query })
-  const all = getAllClaims()
-  const items = queryClaims(all.map(enrichClaim), query)
-
-  return withMockLatency(
-    clone({
-      items,
-      total: items.length,
-      summary: summariseClaims(all),
-      claimTypeOptions: claimTypes.map(({ value, label }) => ({ value, label })),
+  const [response, types] = await Promise.all([
+    authApi.get(ENDPOINTS.claims, {
+      params: {
+        search: query.search?.trim() || undefined,
+        status: toApiCode(filterValue(query.status)),
+        claim_type: filterValue(query.claimType),
+        sort: query.sort,
+        limit: LIST_LIMIT,
+      },
     }),
-  )
+    authApi.get(ENDPOINTS.claimTypes),
+  ])
+  const counts = response.summary
+  return {
+    items: response.items.map(toClaimSummary),
+    total: response.total,
+    summary: {
+      total: counts.total,
+      draft: counts.draft,
+      submitted: counts.submitted,
+      underReview: counts.under_review,
+      verified: counts.verified,
+      assessed: counts.assessed,
+      approved: counts.approved,
+      rejected: counts.rejected,
+      settled: counts.settled,
+      cancelled: counts.cancelled,
+      open: counts.open,
+    },
+    claimTypeOptions: types.items.map(({ code, label }) => ({ value: code, label })),
+  }
 }
 
-/** One claim with policy, coverage, premium and workflow context. */
-export const getClaimById = async (claimId, options = {}) => {
-  // Future: return apiClient.get(ENDPOINTS.claimById(claimId))
-  const claim = requireClaim(claimId)
-  return withMockLatency(clone(buildClaimDetails(claim, options.asOf ?? todayIso())))
-}
+/** One claim with policy, coverage, premium, workflow and decision context. */
+export const getClaimById = async (claimId) =>
+  toDetails(await authApi.get(ENDPOINTS.claimById(claimId)))
 
 export const getClaimsByPolicyId = async (policyId) => {
-  // Future: return apiClient.get(ENDPOINTS.claimsByPolicyId(policyId))
-  if (!findPolicyById(policyId)) throw policyNotFound(policyId)
-  const items = getAllClaims().filter((claim) => claim.policyId === policyId).map(enrichClaim)
-  return withMockLatency(clone({ items, total: items.length }))
-}
-
-const evaluatePolicy = (policy, asOf) => {
-  const product = findProduct(policy)
-  return evaluateClaimEligibility({
-    policy,
-    product,
-    premiumSummary: policy ? getPremiumAccountSnapshot(policy.id, asOf)?.summary ?? null : null,
-    claimTypes,
-    asOf,
+  const response = await authApi.get(ENDPOINTS.claims, {
+    params: { policy_number: policyId, limit: LIST_LIMIT },
   })
+  return { items: response.items.map(toClaimSummary), total: response.total }
 }
 
-/** Every policy with its claim eligibility, eligible policies first. */
-export const getEligiblePoliciesForClaim = async (options = {}) => {
-  // Future: return apiClient.get(ENDPOINTS.claimEligibility)
-  const asOf = options.asOf ?? todayIso()
-  const items = getAllPolicies()
-    .map((policy) => ({ policy: toPolicySnapshot(policy), eligibility: evaluatePolicy(policy, asOf) }))
-    .sort((a, b) => Number(b.eligibility.eligible) - Number(a.eligibility.eligible) || a.policy.id.localeCompare(b.policy.id))
-
-  return withMockLatency(
-    clone({ items, eligibleCount: items.filter((item) => item.eligibility.eligible).length, asOf }),
-  )
+/** Every policy in scope with its claim eligibility, eligible policies first. */
+export const getEligiblePoliciesForClaim = async () => {
+  const response = await authApi.get(ENDPOINTS.claimEligibility)
+  return {
+    items: response.items.map((item) => ({
+      policy: toPolicy(item.policy),
+      eligibility: toEligibility(item.eligibility),
+    })),
+    eligibleCount: response.eligible_count,
+    asOf: response.as_of,
+  }
 }
 
 /** Eligibility and the claim types a filer may choose, for one policy. */
-export const getClaimFilingContext = async (policyId, options = {}) => {
-  // Future: return apiClient.get(ENDPOINTS.claimFilingContext(policyId))
-  const asOf = options.asOf ?? todayIso()
-  const policy = findPolicyById(policyId)
-  if (!policy) throw policyNotFound(policyId)
-
-  const product = findProduct(policy)
-  const eligibility = evaluatePolicy(policy, asOf)
-  const types = getCompatibleClaimTypes(policy, product, claimTypes).map((type) => ({
-    ...type,
-    illustrativeLimit: calculateIllustrativeLimit(type, policy.coverageAmount),
-  }))
-
-  return withMockLatency(clone({ policy: toPolicySnapshot(policy), eligibility, claimTypes: types, asOf }))
+export const getClaimFilingContext = async (policyId) => {
+  const response = await authApi.get(ENDPOINTS.claimFilingContext(policyId))
+  return {
+    policy: toPolicy(response.policy),
+    eligibility: toEligibility(response.eligibility),
+    claimTypes: response.claim_types.map(toClaimType),
+    asOf: response.as_of,
+  }
 }
 
 /* ------------------------------------------------------------------ */
-/* Filing                                                              */
+/* Filing and workflow                                                 */
 /* ------------------------------------------------------------------ */
 
 /**
- * File a claim. It is created as a draft and immediately submitted, so its
- * first activity event records Draft → Submitted.
+ * File a claim: created and submitted in one server-side transaction, so its
+ * first history event records Draft -> Submitted.
  *
  * @param {object} values Claim form values (see `buildEmptyClaimForm`).
- * @param {{role: string}} actor
  */
-export const createClaim = async (values, actor) => {
-  // Future: return apiClient.post(ENDPOINTS.claims, values)
-  if (!ROLES_ALLOWED_TO_FILE_CLAIM.includes(actor?.role)) {
-    throw new ApiError(
-      'Claims are filed by the policyholder or their agent. Claims officers review claims and cannot file them.',
-      { status: 403, data: { reason: 'unauthorized-filing' } },
+export const createClaim = (values) =>
+  call(async () => {
+    const documents = Object.fromEntries(
+      Object.entries(values.documents ?? {})
+        .filter(([, entry]) => entry?.provided)
+        .map(([type, entry]) => [type, String(entry.fileName ?? '').trim()]),
     )
-  }
-
-  const asOf = todayIso()
-
-  if (!values?.policyId) {
-    throw new ApiError('Select the policy this claim is for.', {
-      status: 422,
-      data: { reason: 'invalid-claim', errors: { policyId: 'Select the policy this claim is for.' } },
+    const detail = await authApi.post(ENDPOINTS.claims, {
+      policy_number: values.policyId,
+      claim_type: values.claimType,
+      incident_date: values.incidentDate,
+      claimed_amount: String(values.claimedAmount).trim(),
+      description: String(values.description ?? '').trim(),
+      documents,
     })
-  }
-
-  const policy = findPolicyById(values.policyId)
-  if (!policy) throw policyNotFound(values.policyId)
-
-  const eligibility = evaluatePolicy(policy, asOf)
-  if (!eligibility.eligible) {
-    throw new ApiError(`A claim cannot be filed against ${policy.id}: ${eligibility.reasons[0]}`, {
-      status: 409,
-      data: { reason: 'policy-not-eligible', reasons: eligibility.reasons },
-    })
-  }
-
-  const claimType = findClaimType(values.claimType, claimTypes)
-  const errors = validateClaimForm(values, { policy, claimType, claimTypes, asOf })
-  if (claimType && !errors.claimType && !eligibility.compatibleClaimTypes.includes(claimType.value)) {
-    errors.claimType = `${claimType.label} is not covered by this policy.`
-  }
-  if (Object.keys(errors).length) {
-    throw new ApiError('The claim has validation errors.', {
-      status: 422,
-      data: { reason: 'invalid-claim', errors },
-    })
-  }
-
-  const filer = resolveActor(actor.role, policy)
-  const claimId = generateClaimId(Number(asOf.slice(0, 4)))
-  const at = nowIso()
-
-  const draft = {
-    claimId,
-    policyId: policy.id,
-    policyholderId: policy.policyholder?.customerId ?? null,
-    claimType: claimType.value,
-    incidentDate: values.incidentDate,
-    filingDate: asOf,
-    description: String(values.description).trim(),
-    claimedAmount: Number(values.claimedAmount),
-    approvedAmount: null,
-    status: S.DRAFT,
-    assignedTo: null,
-    filedBy: filer,
-    documents: buildDocumentRecords(claimId, claimType, values.documents, at),
-    verification: null,
-    assessment: null,
-    decision: null,
-    rejectionReason: null,
-    settlement: null,
-    createdAt: at,
-    updatedAt: at,
-    activity: [],
-    isSessionCreated: true,
-  }
-
-  const submitted = applyTransition(draft, S.SUBMITTED, filer, {
-    at,
-    note: filer.role === ROLES.AGENT ? 'Filed by the agent on behalf of the policyholder.' : null,
+    return toDetails(detail)
   })
 
-  saveClaim(submitted)
-  return withMockLatency(clone(buildClaimDetails(submitted, asOf)))
+const runAction = (claimId, action, body) =>
+  call(async () => toDetails(await authApi.post(ENDPOINTS.claimAction(claimId, action), body)))
+
+/**
+ * Status changes without extra rules: start the review, or withdraw a
+ * submitted claim (`options.action = 'cancel-draft'` cancels a draft instead).
+ */
+export const transitionClaim = (claimId, nextStatus, _actor, options = {}) => {
+  if (nextStatus === 'under-review') {
+    return runAction(claimId, 'start-review', { note: options.note ?? null })
+  }
+  if (nextStatus === 'cancelled') {
+    const action = options.action === 'cancel-draft' ? 'cancel' : 'withdraw'
+    return runAction(claimId, action, { note: options.note ?? null })
+  }
+  return Promise.reject(
+    new ApiError(`Use the dedicated action to move a claim to "${nextStatus}".`, {
+      status: 422,
+      data: { reason: 'dedicated-action-required' },
+    }),
+  )
 }
 
-/* ------------------------------------------------------------------ */
-/* Workflow                                                            */
-/* ------------------------------------------------------------------ */
+export const verifyClaim = (claimId, _actor, options = {}) =>
+  runAction(claimId, 'verify', { note: options.note ?? null })
 
-/** Wrap a synchronous runner so every failure surfaces as a rejected promise. */
-const asAsync = (runner) =>
-  new Promise((resolve, reject) => {
-    try {
-      resolve(runner())
-    } catch (error) {
-      reject(error)
-    }
+export const assessClaim = (claimId, { assessedAmount, note } = {}) =>
+  runAction(claimId, 'assess', {
+    assessed_amount: String(assessedAmount ?? '').trim(),
+    note: note ? String(note).trim() : null,
   })
 
-/**
- * Change a claim's status directly. Only transitions without extra rules
- * (start review, withdraw) can be made this way; everything else is rejected
- * and must use its dedicated action.
- */
-export const transitionClaim = (claimId, nextStatus, actor, options = {}) =>
-  asAsync(() =>
-    runTransition({
-      claimId,
-      toStatus: nextStatus,
-      actor,
-      note: options.note,
-      buildPatch: (claim, { actor: resolvedActor }) =>
-        nextStatus === S.UNDER_REVIEW ? { assignedTo: resolvedActor } : {},
-    }),
-  )
+export const approveClaim = (claimId, _actor, options = {}) =>
+  runAction(claimId, 'approve', { note: options.note ?? null })
 
-/** Under review → Verified, after the verification checklist passes. */
-export const verifyClaim = (claimId, actor, options = {}) =>
-  asAsync(() =>
-    runTransition({
-      claimId,
-      toStatus: S.VERIFIED,
-      actor,
-      note: options.note,
-      dedicated: 'verification',
-      validate: (claim, context) => {
-        const checklist = buildVerificationChecklist({
-          claim,
-          policy: context.policy,
-          product: context.product,
-          claimType: context.claimType,
-          premiumSummary: context.premium?.summary ?? null,
-          limit: context.limit,
-        })
-        if (checklist.blocking) {
-          const failed = checklist.checks.filter((item) => item.outcome === 'fail')
-          throw new ApiError(`The claim cannot be verified: ${failed.map((item) => item.detail).join(' ')}`, {
-            status: 422,
-            data: { reason: 'verification-checks-failed', checks: checklist.checks },
-          })
-        }
-      },
-      buildPatch: (claim, context) => {
-        const checklist = buildVerificationChecklist({
-          claim,
-          policy: context.policy,
-          product: context.product,
-          claimType: context.claimType,
-          premiumSummary: context.premium?.summary ?? null,
-          limit: context.limit,
-        })
-        return {
-          verification: {
-            verifiedAt: context.at,
-            verifiedBy: context.actor,
-            checksPassed: checklist.passed,
-            checksTotal: checklist.checks.length,
-            warnings: checklist.warnings,
-            note: options.note ? String(options.note).trim() : null,
-          },
-          documents: claim.documents.map((item) => ({ ...item, status: 'verified' })),
-        }
-      },
-    }),
-  )
+export const rejectClaim = (claimId, reason) =>
+  runAction(claimId, 'reject', { reason: String(reason ?? '') })
 
-/** Verified → Assessed, recording the assessed amount against the limit. */
-export const assessClaim = (claimId, { assessedAmount, note } = {}, actor) =>
-  asAsync(() =>
-    runTransition({
-      claimId,
-      toStatus: S.ASSESSED,
-      actor,
-      note: `Assessed at ${formatCurrency(assessedAmount)}.${note ? ` ${String(note).trim()}` : ''}`,
-      dedicated: 'assessment',
-      validate: (claim, context) => {
-        if (!context.limit) {
-          throw new ApiError('The illustrative limit cannot be calculated because the policy or claim type is unavailable.', {
-            status: 422,
-            data: { reason: 'invalid-assessment', errors: { assessedAmount: 'The coverage limit is unavailable.' } },
-          })
-        }
-        const errors = validateAssessment({
-          assessedAmount,
-          claimedAmount: claim.claimedAmount,
-          limit: context.limit.limit,
-          note,
-        })
-        if (Object.keys(errors).length) {
-          throw new ApiError(Object.values(errors)[0], {
-            status: 422,
-            data: { reason: 'invalid-assessment', errors },
-          })
-        }
-      },
-      buildPatch: (claim, context) => ({
-        assessment: {
-          assessedAmount: Number(assessedAmount),
-          illustrativeLimit: context.limit.limit,
-          limitBasis: context.limit.basis,
-          note: note ? String(note).trim() : null,
-          assessedAt: context.at,
-          assessedBy: context.actor,
-        },
-      }),
-    }),
-  )
-
-/** Assessed → Approved. Requires a valid recorded assessment. */
-export const approveClaim = (claimId, actor, options = {}) =>
-  asAsync(() =>
-    runTransition({
-      claimId,
-      toStatus: S.APPROVED,
-      actor,
-      note: options.note,
-      dedicated: 'decision',
-      validate: (claim) => {
-        const readiness = checkApprovalReadiness(claim)
-        if (!readiness.ready) {
-          throw new ApiError(readiness.reason, { status: 422, data: { reason: 'assessment-required' } })
-        }
-      },
-      buildPatch: (claim, context) => ({
-        approvedAmount: claim.assessment.assessedAmount,
-        decision: {
-          outcome: S.APPROVED,
-          reason:
-            claim.assessment.assessedAmount === claim.claimedAmount
-              ? 'Assessed amount is within the illustrative coverage limit.'
-              : 'Approved at the assessed amount.',
-          decidedAt: context.at,
-          decidedBy: context.actor,
-        },
-      }),
-    }),
-  )
-
-/** Assessed → Rejected. A reason is mandatory. */
-export const rejectClaim = (claimId, reason, actor) =>
-  asAsync(() =>
-    runTransition({
-      claimId,
-      toStatus: S.REJECTED,
-      actor,
-      note: String(reason ?? '').trim(),
-      dedicated: 'decision',
-      validate: () => {
-        const error = validateRejectionReason(reason)
-        if (error) {
-          throw new ApiError(error, {
-            status: 422,
-            data: { reason: 'rejection-reason-required', errors: { rejectionReason: error } },
-          })
-        }
-      },
-      buildPatch: (claim, context) => ({
-        rejectionReason: String(reason).trim(),
-        decision: { outcome: S.REJECTED, reason: String(reason).trim(), decidedAt: context.at, decidedBy: context.actor },
-      }),
-    }),
-  )
-
-/**
- * Approved → Settled. Records a settlement reference and date only; no money
- * moves and the premium/payment module is not touched.
- */
-export const settleClaim = (claimId, actor) =>
-  asAsync(() => {
-    const existing = requireClaim(claimId)
-    if (existing.status === S.SETTLED) {
-      throw new ApiError(
-        `Claim ${claimId} is already settled under reference ${existing.settlement?.reference}. It cannot be settled twice.`,
-        { status: 409, data: { reason: 'already-settled', reference: existing.settlement?.reference } },
-      )
-    }
-
-    // Computing the next reference has no side effect; it is only saved if the transition succeeds.
-    const reference = generateSettlementReference(Number(todayIso().slice(0, 4)))
-    return runTransition({
-      claimId,
-      toStatus: S.SETTLED,
-      actor,
-      dedicated: 'settlement',
-      validate: (claim) => {
-        if (!(claim.approvedAmount > 0)) {
-          throw new ApiError('An approved amount is required before settlement.', {
-            status: 422,
-            data: { reason: 'assessment-required' },
-          })
-        }
-      },
-      note: `Settlement reference ${reference}.`,
-      buildPatch: (claim, context) => ({
-        settlement: {
-          reference,
-          settledAt: context.at,
-          settledDate: todayIso(),
-          amount: claim.approvedAmount,
-          settledBy: context.actor,
-          note: 'Settlement recorded. No payment is made by this demonstration system.',
-        },
-      }),
-    })
-  })
+/** Approved -> Settled for the approved amount, under a server-generated reference. */
+export const settleClaim = (claimId) => runAction(claimId, 'settle')
 
 export default {
   getClaims,

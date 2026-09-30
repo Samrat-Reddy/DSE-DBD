@@ -1,0 +1,958 @@
+{
+  "_source": "Generated from frontend/src/data/claimTypes.js and claims.js (illustrative demo data).",
+  "claim_types": [
+    {
+      "code": "hospitalisation",
+      "label": "Hospitalisation",
+      "product_type": "health",
+      "coverage_item": "In-patient hospitalisation",
+      "percent_of_coverage": 100,
+      "max_amount": null,
+      "limit_basis": "Up to the sum insured",
+      "description": "In-patient treatment requiring admission of 24 hours or more.",
+      "documents": [
+        {
+          "doc_type": "discharge-summary",
+          "label": "Hospital discharge summary",
+          "suggested_name": "discharge-summary.pdf",
+          "required": true,
+          "position": 1
+        },
+        {
+          "doc_type": "hospital-bill",
+          "label": "Hospital bill",
+          "suggested_name": "hospital-bill.pdf",
+          "required": true,
+          "position": 2
+        },
+        {
+          "doc_type": "identity",
+          "label": "Identity document",
+          "suggested_name": "identity-document.pdf",
+          "required": true,
+          "position": 3
+        },
+        {
+          "doc_type": "other",
+          "label": "Other supporting document",
+          "suggested_name": "supporting-document.pdf",
+          "required": false,
+          "position": 4
+        }
+      ]
+    },
+    {
+      "code": "day-care",
+      "label": "Day-care procedure",
+      "product_type": "health",
+      "coverage_item": "Day-care procedures",
+      "percent_of_coverage": 100,
+      "max_amount": null,
+      "limit_basis": "Up to the sum insured",
+      "description": "A listed procedure completed without a 24-hour admission.",
+      "documents": [
+        {
+          "doc_type": "treatment-summary",
+          "label": "Treatment summary",
+          "suggested_name": "treatment-summary.pdf",
+          "required": true,
+          "position": 1
+        },
+        {
+          "doc_type": "hospital-bill",
+          "label": "Hospital bill",
+          "suggested_name": "hospital-bill.pdf",
+          "required": true,
+          "position": 2
+        },
+        {
+          "doc_type": "identity",
+          "label": "Identity document",
+          "suggested_name": "identity-document.pdf",
+          "required": true,
+          "position": 3
+        }
+      ]
+    },
+    {
+      "code": "temporary-disablement",
+      "label": "Accident — temporary disablement",
+      "product_type": "personal_accident",
+      "coverage_item": "Temporary total disablement",
+      "percent_of_coverage": 100,
+      "max_amount": null,
+      "limit_basis": "1% of sum insured per week, up to 100 weeks",
+      "description": "Weekly benefit while an accidental injury prevents all work.",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "label": "FIR / incident report",
+          "suggested_name": "incident-report.pdf",
+          "required": true,
+          "position": 1
+        },
+        {
+          "doc_type": "medical-certificate",
+          "label": "Medical certificate of disablement",
+          "suggested_name": "medical-certificate.pdf",
+          "required": true,
+          "position": 2
+        },
+        {
+          "doc_type": "identity",
+          "label": "Identity document",
+          "suggested_name": "identity-document.pdf",
+          "required": true,
+          "position": 3
+        },
+        {
+          "doc_type": "other",
+          "label": "Other supporting document",
+          "suggested_name": "supporting-document.pdf",
+          "required": false,
+          "position": 4
+        }
+      ]
+    },
+    {
+      "code": "permanent-disability",
+      "label": "Accident — permanent partial disability",
+      "product_type": "personal_accident",
+      "coverage_item": "Permanent partial disability",
+      "percent_of_coverage": 50,
+      "max_amount": null,
+      "limit_basis": "Illustrative ceiling of 50% of sum insured (benefit table)",
+      "description": "Lump-sum benefit for a lasting partial disability after an accident.",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "label": "FIR / incident report",
+          "suggested_name": "incident-report.pdf",
+          "required": true,
+          "position": 1
+        },
+        {
+          "doc_type": "disability-certificate",
+          "label": "Disability certificate",
+          "suggested_name": "disability-certificate.pdf",
+          "required": true,
+          "position": 2
+        },
+        {
+          "doc_type": "identity",
+          "label": "Identity document",
+          "suggested_name": "identity-document.pdf",
+          "required": true,
+          "position": 3
+        }
+      ]
+    },
+    {
+      "code": "vehicle-damage",
+      "label": "Vehicle damage",
+      "product_type": "motor",
+      "coverage_item": "Own damage",
+      "percent_of_coverage": 100,
+      "max_amount": null,
+      "limit_basis": "Up to the insured declared value",
+      "description": "Accidental damage to the insured vehicle.",
+      "documents": [
+        {
+          "doc_type": "repair-estimate",
+          "label": "Repair estimate",
+          "suggested_name": "repair-estimate.pdf",
+          "required": true,
+          "position": 1
+        },
+        {
+          "doc_type": "registration-certificate",
+          "label": "Registration certificate",
+          "suggested_name": "registration-certificate.pdf",
+          "required": true,
+          "position": 2
+        },
+        {
+          "doc_type": "driving-licence",
+          "label": "Driving licence",
+          "suggested_name": "driving-licence.pdf",
+          "required": true,
+          "position": 3
+        },
+        {
+          "doc_type": "incident-report",
+          "label": "FIR / incident report",
+          "suggested_name": "incident-report.pdf",
+          "required": false,
+          "position": 4
+        }
+      ]
+    },
+    {
+      "code": "vehicle-theft",
+      "label": "Vehicle theft",
+      "product_type": "motor",
+      "coverage_item": "Theft of vehicle",
+      "percent_of_coverage": 100,
+      "max_amount": null,
+      "limit_basis": "Up to the insured declared value",
+      "description": "Theft of the insured vehicle.",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "label": "FIR / incident report",
+          "suggested_name": "fir.pdf",
+          "required": true,
+          "position": 1
+        },
+        {
+          "doc_type": "registration-certificate",
+          "label": "Registration certificate",
+          "suggested_name": "registration-certificate.pdf",
+          "required": true,
+          "position": 2
+        },
+        {
+          "doc_type": "non-traceable-report",
+          "label": "Police non-traceable report",
+          "suggested_name": "non-traceable-report.pdf",
+          "required": true,
+          "position": 3
+        }
+      ]
+    },
+    {
+      "code": "property-damage",
+      "label": "Property damage",
+      "product_type": "home",
+      "coverage_item": "Building structure",
+      "percent_of_coverage": 100,
+      "max_amount": null,
+      "limit_basis": "Up to the sum insured",
+      "description": "Damage to the building from fire, flood or another insured peril.",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "label": "Incident report",
+          "suggested_name": "incident-report.pdf",
+          "required": true,
+          "position": 1
+        },
+        {
+          "doc_type": "repair-estimate",
+          "label": "Repair estimate",
+          "suggested_name": "repair-estimate.pdf",
+          "required": true,
+          "position": 2
+        },
+        {
+          "doc_type": "photographs",
+          "label": "Photographs of damage",
+          "suggested_name": "damage-photographs.zip",
+          "required": false,
+          "position": 3
+        }
+      ]
+    },
+    {
+      "code": "contents-burglary",
+      "label": "Burglary — household contents",
+      "product_type": "home",
+      "coverage_item": "Household contents",
+      "percent_of_coverage": 20,
+      "max_amount": null,
+      "limit_basis": "20% of sum insured for household contents",
+      "description": "Loss of household contents through burglary or theft.",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "label": "FIR / incident report",
+          "suggested_name": "fir.pdf",
+          "required": true,
+          "position": 1
+        },
+        {
+          "doc_type": "stolen-items-list",
+          "label": "List of stolen items",
+          "suggested_name": "stolen-items.pdf",
+          "required": true,
+          "position": 2
+        },
+        {
+          "doc_type": "purchase-invoices",
+          "label": "Purchase invoices",
+          "suggested_name": "invoices.pdf",
+          "required": false,
+          "position": 3
+        }
+      ]
+    },
+    {
+      "code": "terminal-illness",
+      "label": "Terminal illness benefit",
+      "product_type": "life",
+      "coverage_item": "Terminal illness benefit",
+      "percent_of_coverage": 100,
+      "max_amount": 2000000,
+      "limit_basis": "Sum assured, capped at Rs. 20,00,000",
+      "description": "Accelerated benefit on diagnosis of a terminal illness. Death claims are out of scope for this demonstration.",
+      "documents": [
+        {
+          "doc_type": "specialist-report",
+          "label": "Specialist medical report",
+          "suggested_name": "specialist-report.pdf",
+          "required": true,
+          "position": 1
+        },
+        {
+          "doc_type": "identity",
+          "label": "Identity document",
+          "suggested_name": "identity-document.pdf",
+          "required": true,
+          "position": 2
+        },
+        {
+          "doc_type": "other",
+          "label": "Other supporting document",
+          "suggested_name": "supporting-document.pdf",
+          "required": false,
+          "position": 3
+        }
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "claim_number": "CLM-2024-000087",
+      "policy_number": "POL-2023-000874",
+      "claim_type": "contents-burglary",
+      "incident_date": "2024-03-18",
+      "filing_date": "2024-03-20",
+      "description": "Burglary at the insured residence while the family was away. Entry was forced through the rear balcony door; a laptop, a television, cash and jewellery were taken. Police were informed the same evening.",
+      "claimed_amount": 185000,
+      "approved_amount": null,
+      "status": "rejected",
+      "rejection_reason": "Most of the claimed value is cash and jewellery that were not declared at proposal stage. Loss of undeclared cash and valuables is excluded under the illustrative policy terms.",
+      "created_at": "2024-03-20T05:20:00",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "file_name": "fir-dwarka-sector-15.pdf",
+          "status": "verified",
+          "submitted_at": "2024-03-20T05:10:00"
+        },
+        {
+          "doc_type": "stolen-items-list",
+          "file_name": "stolen-items-list.pdf",
+          "status": "verified",
+          "submitted_at": "2024-03-20T05:12:00"
+        },
+        {
+          "doc_type": "purchase-invoices",
+          "file_name": "electronics-invoices.pdf",
+          "status": "verified",
+          "submitted_at": "2024-03-20T05:15:00"
+        }
+      ],
+      "verification": {
+        "checks_passed": 6,
+        "checks_total": 6,
+        "warnings": 0,
+        "note": "FIR and item list are consistent with the incident description."
+      },
+      "assessment": {
+        "assessed_amount": 185000,
+        "illustrative_limit": 560000,
+        "limit_basis": "20% of sum insured for household contents",
+        "note": "Items verified against the FIR. Cash of Rs. 60,000 and jewellery of Rs. 1,10,000 make up most of the claimed value."
+      },
+      "settlement": null,
+      "events": [
+        {
+          "sequence_no": 1,
+          "action": "submit",
+          "from_status": "draft",
+          "to_status": "submitted",
+          "actor_name": "Rohit Sharma",
+          "actor_role": "policyholder",
+          "note": null,
+          "occurred_at": "2024-03-20T05:20:00"
+        },
+        {
+          "sequence_no": 2,
+          "action": "start_review",
+          "from_status": "submitted",
+          "to_status": "under_review",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": null,
+          "occurred_at": "2024-03-22T04:05:00"
+        },
+        {
+          "sequence_no": 3,
+          "action": "verify",
+          "from_status": "under_review",
+          "to_status": "verified",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": "FIR and item list are consistent with the incident description.",
+          "occurred_at": "2024-03-28T09:30:00"
+        },
+        {
+          "sequence_no": 4,
+          "action": "assess",
+          "from_status": "verified",
+          "to_status": "assessed",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": "Assessed at Rs. 1,85,000.",
+          "occurred_at": "2024-04-02T07:45:00"
+        },
+        {
+          "sequence_no": 5,
+          "action": "reject",
+          "from_status": "assessed",
+          "to_status": "rejected",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": "Undeclared cash and valuables are excluded.",
+          "occurred_at": "2024-04-05T10:20:00"
+        }
+      ]
+    },
+    {
+      "claim_number": "CLM-2024-000152",
+      "policy_number": "POL-2024-000148",
+      "claim_type": "hospitalisation",
+      "incident_date": "2024-11-02",
+      "filing_date": "2024-11-08",
+      "description": "Admitted with acute appendicitis and underwent a laparoscopic appendectomy. Discharged after three days. Treatment was at a network hospital but the cashless request was not raised in time, so this is a reimbursement claim.",
+      "claimed_amount": 68400,
+      "approved_amount": 64900,
+      "status": "settled",
+      "rejection_reason": null,
+      "created_at": "2024-11-08T06:10:00",
+      "documents": [
+        {
+          "doc_type": "discharge-summary",
+          "file_name": "discharge-summary.pdf",
+          "status": "verified",
+          "submitted_at": "2024-11-08T06:02:00"
+        },
+        {
+          "doc_type": "hospital-bill",
+          "file_name": "final-hospital-bill.pdf",
+          "status": "verified",
+          "submitted_at": "2024-11-08T06:04:00"
+        },
+        {
+          "doc_type": "identity",
+          "file_name": "aadhaar-ananya.pdf",
+          "status": "verified",
+          "submitted_at": "2024-11-08T06:05:00"
+        }
+      ],
+      "verification": {
+        "checks_passed": 6,
+        "checks_total": 6,
+        "warnings": 0,
+        "note": "Admission and billing documents are complete."
+      },
+      "assessment": {
+        "assessed_amount": 64900,
+        "illustrative_limit": 1000000,
+        "limit_basis": "Up to the sum insured",
+        "note": "Rs. 3,500 of non-medical consumables excluded (illustrative)."
+      },
+      "settlement": {
+        "settlement_reference": "SET-2024-000118",
+        "amount": 64900,
+        "settled_on": "2024-12-02"
+      },
+      "events": [
+        {
+          "sequence_no": 1,
+          "action": "submit",
+          "from_status": "draft",
+          "to_status": "submitted",
+          "actor_name": "Meera Iyer",
+          "actor_role": "agent",
+          "note": "Filed by the agent on behalf of the policyholder.",
+          "occurred_at": "2024-11-08T06:10:00"
+        },
+        {
+          "sequence_no": 2,
+          "action": "start_review",
+          "from_status": "submitted",
+          "to_status": "under_review",
+          "actor_name": "S. Kulkarni",
+          "actor_role": "administrator",
+          "note": null,
+          "occurred_at": "2024-11-11T04:30:00"
+        },
+        {
+          "sequence_no": 3,
+          "action": "verify",
+          "from_status": "under_review",
+          "to_status": "verified",
+          "actor_name": "S. Kulkarni",
+          "actor_role": "administrator",
+          "note": "Admission and billing documents are complete.",
+          "occurred_at": "2024-11-14T08:15:00"
+        },
+        {
+          "sequence_no": 4,
+          "action": "assess",
+          "from_status": "verified",
+          "to_status": "assessed",
+          "actor_name": "S. Kulkarni",
+          "actor_role": "administrator",
+          "note": "Assessed at Rs. 64,900.",
+          "occurred_at": "2024-11-18T11:40:00"
+        },
+        {
+          "sequence_no": 5,
+          "action": "approve",
+          "from_status": "assessed",
+          "to_status": "approved",
+          "actor_name": "S. Kulkarni",
+          "actor_role": "administrator",
+          "note": null,
+          "occurred_at": "2024-11-20T06:30:00"
+        },
+        {
+          "sequence_no": 6,
+          "action": "settle",
+          "from_status": "approved",
+          "to_status": "settled",
+          "actor_name": "S. Kulkarni",
+          "actor_role": "administrator",
+          "note": "Settlement reference SET-2024-000118.",
+          "occurred_at": "2024-12-02T09:00:00"
+        }
+      ]
+    },
+    {
+      "claim_number": "CLM-2026-000044",
+      "policy_number": "POL-2024-000519",
+      "claim_type": "temporary-disablement",
+      "incident_date": "2026-04-12",
+      "filing_date": "2026-06-01",
+      "description": "Two-wheeler collision on the way to work caused a fractured right wrist. Advised complete rest from work for six weeks; claim filed after the fitness certificate was issued.",
+      "claimed_amount": 150000,
+      "approved_amount": 150000,
+      "status": "approved",
+      "rejection_reason": null,
+      "created_at": "2026-06-01T07:10:00",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "file_name": "accident-report-banjara-hills.pdf",
+          "status": "verified",
+          "submitted_at": "2026-06-01T07:00:00"
+        },
+        {
+          "doc_type": "medical-certificate",
+          "file_name": "orthopaedic-certificate.pdf",
+          "status": "verified",
+          "submitted_at": "2026-06-01T07:02:00"
+        },
+        {
+          "doc_type": "identity",
+          "file_name": "pan-farhan.pdf",
+          "status": "verified",
+          "submitted_at": "2026-06-01T07:03:00"
+        }
+      ],
+      "verification": {
+        "checks_passed": 5,
+        "checks_total": 6,
+        "warnings": 1,
+        "note": "Medical certificate confirms six weeks of total disablement."
+      },
+      "assessment": {
+        "assessed_amount": 150000,
+        "illustrative_limit": 2500000,
+        "limit_basis": "1% of sum insured per week, up to 100 weeks",
+        "note": "Six weeks at Rs. 25,000 per week. Held pending employer confirmation of the leave period."
+      },
+      "settlement": null,
+      "events": [
+        {
+          "sequence_no": 1,
+          "action": "submit",
+          "from_status": "draft",
+          "to_status": "submitted",
+          "actor_name": "Farhan Qureshi",
+          "actor_role": "policyholder",
+          "note": null,
+          "occurred_at": "2026-06-01T07:10:00"
+        },
+        {
+          "sequence_no": 2,
+          "action": "start_review",
+          "from_status": "submitted",
+          "to_status": "under_review",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": null,
+          "occurred_at": "2026-06-03T05:00:00"
+        },
+        {
+          "sequence_no": 3,
+          "action": "verify",
+          "from_status": "under_review",
+          "to_status": "verified",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": "Medical certificate confirms six weeks of total disablement.",
+          "occurred_at": "2026-06-12T10:05:00"
+        },
+        {
+          "sequence_no": 4,
+          "action": "assess",
+          "from_status": "verified",
+          "to_status": "assessed",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": "Assessed at Rs. 1,50,000 after employer confirmation.",
+          "occurred_at": "2026-09-04T06:50:00"
+        },
+        {
+          "sequence_no": 5,
+          "action": "approve",
+          "from_status": "assessed",
+          "to_status": "approved",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": null,
+          "occurred_at": "2026-09-11T05:15:00"
+        }
+      ]
+    },
+    {
+      "claim_number": "CLM-2026-000052",
+      "policy_number": "POL-2024-000226",
+      "claim_type": "terminal-illness",
+      "incident_date": "2026-07-10",
+      "filing_date": "2026-07-28",
+      "description": "Diagnosis confirmed by the treating oncologist and reviewed by a second specialist. The policyholder has requested the accelerated terminal illness benefit.",
+      "claimed_amount": 2000000,
+      "approved_amount": null,
+      "status": "verified",
+      "rejection_reason": null,
+      "created_at": "2026-07-28T08:30:00",
+      "documents": [
+        {
+          "doc_type": "specialist-report",
+          "file_name": "specialist-opinion.pdf",
+          "status": "verified",
+          "submitted_at": "2026-07-28T08:20:00"
+        },
+        {
+          "doc_type": "identity",
+          "file_name": "passport-vikram.pdf",
+          "status": "verified",
+          "submitted_at": "2026-07-28T08:21:00"
+        },
+        {
+          "doc_type": "other",
+          "file_name": "second-opinion.pdf",
+          "status": "verified",
+          "submitted_at": "2026-07-28T08:24:00"
+        }
+      ],
+      "verification": {
+        "checks_passed": 5,
+        "checks_total": 6,
+        "warnings": 1,
+        "note": "Two independent specialist opinions on file."
+      },
+      "assessment": null,
+      "settlement": null,
+      "events": [
+        {
+          "sequence_no": 1,
+          "action": "submit",
+          "from_status": "draft",
+          "to_status": "submitted",
+          "actor_name": "Arjun Nair",
+          "actor_role": "agent",
+          "note": "Filed by the agent on behalf of the policyholder.",
+          "occurred_at": "2026-07-28T08:30:00"
+        },
+        {
+          "sequence_no": 2,
+          "action": "start_review",
+          "from_status": "submitted",
+          "to_status": "under_review",
+          "actor_name": "S. Kulkarni",
+          "actor_role": "administrator",
+          "note": null,
+          "occurred_at": "2026-07-30T04:45:00"
+        },
+        {
+          "sequence_no": 3,
+          "action": "verify",
+          "from_status": "under_review",
+          "to_status": "verified",
+          "actor_name": "S. Kulkarni",
+          "actor_role": "administrator",
+          "note": "Two independent specialist opinions on file.",
+          "occurred_at": "2026-08-12T07:35:00"
+        }
+      ]
+    },
+    {
+      "claim_number": "CLM-2026-000071",
+      "policy_number": "POL-2024-000519",
+      "claim_type": "permanent-disability",
+      "incident_date": "2026-04-12",
+      "filing_date": "2026-08-05",
+      "description": "Following the April two-wheeler collision, the treating surgeon certified a permanent partial loss of grip strength in the right hand once recovery plateaued.",
+      "claimed_amount": 500000,
+      "approved_amount": null,
+      "status": "assessed",
+      "rejection_reason": null,
+      "created_at": "2026-08-05T06:50:00",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "file_name": "accident-report-banjara-hills.pdf",
+          "status": "verified",
+          "submitted_at": "2026-08-05T06:40:00"
+        },
+        {
+          "doc_type": "disability-certificate",
+          "file_name": "disability-certificate.pdf",
+          "status": "verified",
+          "submitted_at": "2026-08-05T06:42:00"
+        },
+        {
+          "doc_type": "identity",
+          "file_name": "pan-farhan.pdf",
+          "status": "verified",
+          "submitted_at": "2026-08-05T06:43:00"
+        }
+      ],
+      "verification": {
+        "checks_passed": 5,
+        "checks_total": 6,
+        "warnings": 1,
+        "note": "Disability certificate issued by a government medical board."
+      },
+      "assessment": {
+        "assessed_amount": 375000,
+        "illustrative_limit": 1250000,
+        "limit_basis": "Illustrative ceiling of 50% of sum insured (benefit table)",
+        "note": "Disability assessed at 15% of sum insured under the illustrative benefit table."
+      },
+      "settlement": null,
+      "events": [
+        {
+          "sequence_no": 1,
+          "action": "submit",
+          "from_status": "draft",
+          "to_status": "submitted",
+          "actor_name": "Meera Iyer",
+          "actor_role": "agent",
+          "note": "Filed by the agent on behalf of the policyholder.",
+          "occurred_at": "2026-08-05T06:50:00"
+        },
+        {
+          "sequence_no": 2,
+          "action": "start_review",
+          "from_status": "submitted",
+          "to_status": "under_review",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": null,
+          "occurred_at": "2026-08-07T05:20:00"
+        },
+        {
+          "sequence_no": 3,
+          "action": "verify",
+          "from_status": "under_review",
+          "to_status": "verified",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": "Disability certificate issued by a government medical board.",
+          "occurred_at": "2026-08-21T09:10:00"
+        },
+        {
+          "sequence_no": 4,
+          "action": "assess",
+          "from_status": "verified",
+          "to_status": "assessed",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": "Assessed at Rs. 3,75,000 (15% of sum insured).",
+          "occurred_at": "2026-09-09T08:25:00"
+        }
+      ]
+    },
+    {
+      "claim_number": "CLM-2026-000083",
+      "policy_number": "POL-2024-000519",
+      "claim_type": "temporary-disablement",
+      "incident_date": "2026-07-20",
+      "filing_date": "2026-08-18",
+      "description": "Slipped on a wet staircase at the office and sustained a ligament tear in the left knee. Advised three weeks of complete rest by the orthopaedic surgeon.",
+      "claimed_amount": 75000,
+      "approved_amount": null,
+      "status": "under_review",
+      "rejection_reason": null,
+      "created_at": "2026-08-18T11:05:00",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "file_name": "office-incident-report.pdf",
+          "status": "submitted",
+          "submitted_at": "2026-08-18T11:00:00"
+        },
+        {
+          "doc_type": "medical-certificate",
+          "file_name": "knee-rest-certificate.pdf",
+          "status": "submitted",
+          "submitted_at": "2026-08-18T11:02:00"
+        },
+        {
+          "doc_type": "identity",
+          "file_name": "pan-farhan.pdf",
+          "status": "submitted",
+          "submitted_at": "2026-08-18T11:03:00"
+        }
+      ],
+      "verification": null,
+      "assessment": null,
+      "settlement": null,
+      "events": [
+        {
+          "sequence_no": 1,
+          "action": "submit",
+          "from_status": "draft",
+          "to_status": "submitted",
+          "actor_name": "Farhan Qureshi",
+          "actor_role": "policyholder",
+          "note": null,
+          "occurred_at": "2026-08-18T11:05:00"
+        },
+        {
+          "sequence_no": 2,
+          "action": "start_review",
+          "from_status": "submitted",
+          "to_status": "under_review",
+          "actor_name": "R. Banerjee",
+          "actor_role": "administrator",
+          "note": null,
+          "occurred_at": "2026-09-02T06:00:00"
+        }
+      ]
+    },
+    {
+      "claim_number": "CLM-2026-000084",
+      "policy_number": "POL-2024-000519",
+      "claim_type": "temporary-disablement",
+      "incident_date": "2026-07-20",
+      "filing_date": "2026-08-18",
+      "description": "Slipped on a wet staircase at the office and sustained a ligament tear in the left knee. Duplicate of an earlier submission made the same day.",
+      "claimed_amount": 75000,
+      "approved_amount": null,
+      "status": "cancelled",
+      "rejection_reason": null,
+      "created_at": "2026-08-18T11:25:00",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "file_name": "office-incident-report.pdf",
+          "status": "submitted",
+          "submitted_at": "2026-08-18T11:20:00"
+        },
+        {
+          "doc_type": "medical-certificate",
+          "file_name": "knee-rest-certificate.pdf",
+          "status": "submitted",
+          "submitted_at": "2026-08-18T11:21:00"
+        },
+        {
+          "doc_type": "identity",
+          "file_name": "pan-farhan.pdf",
+          "status": "submitted",
+          "submitted_at": "2026-08-18T11:22:00"
+        }
+      ],
+      "verification": null,
+      "assessment": null,
+      "settlement": null,
+      "events": [
+        {
+          "sequence_no": 1,
+          "action": "submit",
+          "from_status": "draft",
+          "to_status": "submitted",
+          "actor_name": "Farhan Qureshi",
+          "actor_role": "policyholder",
+          "note": null,
+          "occurred_at": "2026-08-18T11:25:00"
+        },
+        {
+          "sequence_no": 2,
+          "action": "withdraw",
+          "from_status": "submitted",
+          "to_status": "cancelled",
+          "actor_name": "Farhan Qureshi",
+          "actor_role": "policyholder",
+          "note": "Submitted twice by mistake; CLM-2026-000083 remains open.",
+          "occurred_at": "2026-08-19T03:40:00"
+        }
+      ]
+    },
+    {
+      "claim_number": "CLM-2026-000097",
+      "policy_number": "POL-2024-000519",
+      "claim_type": "temporary-disablement",
+      "incident_date": "2026-09-06",
+      "filing_date": "2026-09-12",
+      "description": "Sprained ankle with a hairline fracture after a fall on a trekking trail near Vikarabad. Immobilised and advised two weeks of complete rest from work.",
+      "claimed_amount": 50000,
+      "approved_amount": null,
+      "status": "submitted",
+      "rejection_reason": null,
+      "created_at": "2026-09-12T04:42:00",
+      "documents": [
+        {
+          "doc_type": "incident-report",
+          "file_name": "trek-incident-report.pdf",
+          "status": "submitted",
+          "submitted_at": "2026-09-12T04:35:00"
+        },
+        {
+          "doc_type": "medical-certificate",
+          "file_name": "ankle-rest-certificate.pdf",
+          "status": "submitted",
+          "submitted_at": "2026-09-12T04:38:00"
+        },
+        {
+          "doc_type": "identity",
+          "file_name": "pan-farhan.pdf",
+          "status": "submitted",
+          "submitted_at": "2026-09-12T04:40:00"
+        }
+      ],
+      "verification": null,
+      "assessment": null,
+      "settlement": null,
+      "events": [
+        {
+          "sequence_no": 1,
+          "action": "submit",
+          "from_status": "draft",
+          "to_status": "submitted",
+          "actor_name": "Farhan Qureshi",
+          "actor_role": "policyholder",
+          "note": null,
+          "occurred_at": "2026-09-12T04:42:00"
+        }
+      ]
+    }
+  ]
+}

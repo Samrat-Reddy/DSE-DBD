@@ -27,13 +27,17 @@ export const ENDPOINTS = {
   payments: '/payments',
   paymentById: (paymentNumber) => `/payments/${encodeURIComponent(paymentNumber)}`,
 
-  // Module 3 — Claim Filing & Approval Workflow
+  // Module 3 — Claim Filing & Approval Workflow (live FastAPI endpoints).
+  // One endpoint per workflow action; there is no generic status endpoint.
   claims: '/claims',
-  claimById: (claimId) => `/claims/${claimId}`,
-  claimsByPolicyId: (policyId) => `/policies/${policyId}/claims`,
+  claimTypes: '/claim-types',
+  claimById: (claimNumber) => `/claims/${encodeURIComponent(claimNumber)}`,
+  claimTimeline: (claimNumber) => `/claims/${encodeURIComponent(claimNumber)}/timeline`,
+  claimAction: (claimNumber, action) =>
+    `/claims/${encodeURIComponent(claimNumber)}/${encodeURIComponent(action)}`,
   claimEligibility: '/claims/eligibility',
-  claimFilingContext: (policyId) => `/policies/${policyId}/claim-eligibility`,
-  claimTransitions: (claimId) => `/claims/${claimId}/transitions`,
+  claimFilingContext: (policyNumber) =>
+    `/policies/${encodeURIComponent(policyNumber)}/claim-eligibility`,
 
   // Module 4 — Renewal Reminder Engine
   renewals: '/renewals',

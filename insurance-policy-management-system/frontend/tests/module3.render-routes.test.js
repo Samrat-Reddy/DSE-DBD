@@ -32,7 +32,7 @@ before(async () => {
   pages = await harness.load('/src/pages/index.js')
   ui = await harness.load('/src/components/claims/index.js')
   policyUi = await harness.load('/src/components/policy/index.js')
-  service = await harness.load('/src/services/claimService.js')
+  service = await harness.load('/src/services/mockClaimLedger.js')
 
   const byStatus = {
     submitted: 'CLM-2026-000097',

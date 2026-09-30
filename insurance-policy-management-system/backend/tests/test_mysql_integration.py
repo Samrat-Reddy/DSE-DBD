@@ -21,7 +21,7 @@ from tests.conftest import run_alembic
 
 pytestmark = pytest.mark.mysql
 
-HEAD = "0004_premium_payments"
+HEAD = "0005_claim_workflow"
 
 
 class _ProbeBase(DeclarativeBase):

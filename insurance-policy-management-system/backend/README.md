@@ -15,8 +15,12 @@ FastAPI + SQLAlchemy 2.x + MySQL 8. Implemented so far:
   payment recording with row locking and duplicate protection. The frontend's
   Module 2 screens use it.
 
-Modules 3–6 (claims, renewals, commissions, MIS reports) are not on the backend
-yet. Their frontend screens still use mock data.
+- **Module 3, Claim Filing & Approval Workflow:** claims with an explicit state
+  machine, one endpoint per workflow action, row-locked transactional
+  transitions and an append-only history. The frontend's Module 3 screens use it.
+
+Modules 4–6 (renewals, commissions, MIS reports) are not on the backend yet.
+Their frontend screens still use mock data.
 
 ## Architecture
 
@@ -618,6 +622,121 @@ WHERE schedule_id = (SELECT s.id FROM premium_schedules s JOIN policies p ON p.i
                      WHERE p.policy_number = 'POL-2024-000519') ORDER BY installment_number;
 ```
 
+## Module 3: Claim Filing & Approval Workflow
+
+### Tables (migration `0005_claim_workflow`)
+
+| Table | Purpose |
+| --- | --- |
+| `claim_types` | Claim catalog: product type, the coverage item it draws on, % of coverage, optional cap |
+| `claim_type_documents` | Documents each claim type requires (unique per type) |
+| `claims` | One row per claim: `CLM-YYYY-NNNNNN`, policy, type, dates, amounts, status |
+| `claim_documents` | Document **metadata** (type, file name, status). No files are stored |
+| `claim_events` | Append-only workflow history, numbered 1..n per claim |
+| `claim_verifications` | Outcome of the verification checklist (one per claim) |
+| `claim_assessments` | Assessed amount against the illustrative limit (one per claim) |
+| `claim_settlements` | Settlement reference `SET-YYYY-NNNNNN` and amount. The PK is `claim_id`, so a claim settles at most once |
+
+Rules enforced by MySQL CHECKs:
+
+- status in the allowed set
+- `claimed_amount > 0`
+- `incident_date <= filing_date`
+- description 30–1000 characters
+- `approved_amount` present exactly when approved or settled, and never above the claimed amount
+- `rejection_reason` present exactly when rejected
+- every `claim_events` row is a legal `(from_status, to_status, action)` triple
+- assessed amount never above the illustrative limit
+
+### State machine (`services/claim_transitions.py`)
+
+| Action | From → To | Roles |
+| --- | --- | --- |
+| submit | draft → submitted | policyholder, agent |
+| cancel_draft | draft → cancelled | policyholder, agent |
+| start_review | submitted → under_review | administrator |
+| withdraw | submitted → cancelled | policyholder, administrator |
+| verify | under_review → verified | administrator |
+| assess | verified → assessed | administrator |
+| approve / reject | assessed → approved / rejected | administrator |
+| settle | approved → settled | administrator |
+
+`rejected`, `settled` and `cancelled` are terminal. "Claims Officer" is the
+administrator's display title, not a separate role. An illegal move returns
+**409**. A legal move by the wrong role returns **403**. The move is checked
+first, then the role.
+
+### A transition (`services/claims.py::_transition`)
+
+1. Commit, which ends the read snapshot that authentication opened.
+2. Lock the claim: `SELECT … FOR UPDATE`.
+3. Check scope. A claim outside the caller's scope returns 404.
+4. Check the state machine and the caller's role, then the action's own rules.
+   For example, verification fails if the checklist has blocking checks, and an
+   assessment must be at most the claimed amount and at most the limit.
+5. Update the claim and its verification, assessment or settlement row.
+6. Append the next `claim_events` row, with the actor's user id plus a snapshot
+   of their name and role.
+7. Commit. Any failure rolls back the whole transition.
+
+Concurrent requests serialise on the row lock. The loser re-reads the new status
+and gets 409, whether the race is approve against reject or two settlements.
+
+Decisions are deterministic rules (`services/claim_rules.py`), with no scoring
+or AI:
+
+- **Eligibility:** policy active, cover in force on the incident date, filing
+  within 90 days of cover ending, and a compatible claim type. Overdue premiums
+  only produce a warning.
+- **Illustrative limit:** coverage × % of coverage, capped at the type's maximum.
+- **Explanation:** every detail response carries `decision.reasons`.
+
+### Endpoints
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /api/v1/claim-types` | Claim catalog and required documents |
+| `GET /api/v1/claims` | Scoped list with `search`, `status`, `claim_type`, `policy_number`, `sort`; status counts |
+| `GET /api/v1/claims/eligibility` | Caller's policies with eligibility checks (for filing) |
+| `GET /api/v1/policies/{n}/claim-eligibility` | Filing context: eligibility, compatible types, limits |
+| `POST /api/v1/claims` | File a claim (policyholder or agent; `submit=false` keeps a draft) |
+| `GET /api/v1/claims/{n}` | Detail: documents, checklist, assessment, decision, settlement, history, allowed actions |
+| `GET /api/v1/claims/{n}/timeline` | History only |
+| `POST /api/v1/claims/{n}/submit` · `cancel` · `withdraw` · `start-review` · `verify` · `assess` · `approve` · `reject` · `settle` | One endpoint per action. There is no generic status endpoint |
+
+Scope follows Module 1. An administrator sees every claim, an agent sees claims
+on the policies they service, and a policyholder sees claims on their own
+policies. Anything else returns 404.
+
+### History is append-only
+
+Once a `claim_events` row is written, the ORM refuses to change it (`ValueError`
+on flush). A MySQL trigger would need SUPER, as in Module 2. The dev seed
+replays every seeded history through the state machine before writing it.
+Seeded events have a NULL `actor_user_id` and keep the name and role snapshot.
+
+### Verify in MySQL Workbench
+
+```sql
+-- Every claim's latest event matches its status (expect 0 rows).
+SELECT c.claim_number, c.status, e.to_status FROM claims c
+JOIN claim_events e ON e.claim_id = c.id
+ AND e.sequence_no = (SELECT MAX(sequence_no) FROM claim_events WHERE claim_id = c.id)
+WHERE e.to_status <> c.status;
+
+-- Sequence numbers have no gaps (expect 0 rows).
+SELECT claim_id FROM claim_events GROUP BY claim_id HAVING MAX(sequence_no) <> COUNT(*);
+
+-- Every settled claim has exactly its approved amount settled (expect 0 rows).
+SELECT c.claim_number FROM claims c LEFT JOIN claim_settlements s ON s.claim_id = c.id
+WHERE (c.status = 'settled') <> (s.claim_id IS NOT NULL) OR s.amount <> c.approved_amount;
+
+-- One claim's history.
+SELECT e.sequence_no, e.action, e.from_status, e.to_status, e.actor_name, e.actor_role, e.occurred_at
+FROM claim_events e JOIN claims c ON c.id = e.claim_id
+WHERE c.claim_number = 'CLM-2026-000071' ORDER BY e.sequence_no;
+```
+
 ## MySQL Workbench usage
 
 - **Connect as the app user.** Click **+** next to *MySQL Connections* and fill in:
@@ -770,9 +889,14 @@ See `.env.example`. Every variable maps to a field on `Settings` (case-insensiti
 
 ## Known limitations
 
-- **Modules 3–6 aren't on the backend yet.** They still read the frontend's
-  frozen mock ledgers, so policies issued and payments recorded through the API
-  don't appear in claims, renewals, commissions or MIS until those modules migrate.
+- **Modules 4–6 aren't on the backend yet.** They still read the frontend's
+  frozen mock ledgers, so policies, payments and claims created through the API
+  don't appear in renewals, commissions or MIS (including MIS claim reports)
+  until those modules migrate.
+- **Claim documents are metadata only.** A file name is recorded, but no file is
+  uploaded or stored.
+- **Claim history immutability is enforced by the ORM, not a trigger** (same
+  reason as payments).
 - **No payment gateway.** The payer states a payment's outcome; no money moves.
 - **Payment immutability is enforced by the ORM model, not a trigger.** A
   trigger needs SUPER under binary logging. To add one, a DBA must enable

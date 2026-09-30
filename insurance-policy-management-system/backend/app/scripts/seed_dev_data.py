@@ -11,7 +11,10 @@
    (the frontend's DEMO_AGENT_ID) and policyholder@example.com -> CUS-100241;
 4. Module 2: creates the premium schedule of every issued policy that lacks
    one, then records the frontend's demo payments (seed_data/module2.json)
-   through the same balance rules the API uses.
+   through the same balance rules the API uses;
+5. Module 3: the claim types and the frontend's demo claims with their
+   workflow histories (seed_data/module3.json), each history replayed
+   through the state machine before it is stored.
 
 Development/test only (refuses when APP_ENV=production). Deterministic and
 idempotent: records are matched on their business codes and never
@@ -31,6 +34,15 @@ from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.models import (
     Agent,
+    Claim,
+    ClaimAssessment,
+    ClaimDocument,
+    ClaimEvent,
+    ClaimSettlement,
+    ClaimStatus,
+    ClaimType,
+    ClaimTypeDocument,
+    ClaimVerification,
     Customer,
     Installment,
     Payment,
@@ -47,11 +59,12 @@ from app.models import (
 )
 from app.repositories import premiums as premium_repo
 from app.scripts.seed_dev_users import seed_dev_users
-from app.services import premium_rules
+from app.services import claim_rules, premium_rules
 from app.services.premiums import create_schedule
 
 SEED_FILE = Path(__file__).parent / "seed_data" / "module1.json"
 PAYMENTS_FILE = Path(__file__).parent / "seed_data" / "module2.json"
+CLAIMS_FILE = Path(__file__).parent / "seed_data" / "module3.json"
 
 # Dev login -> business record it represents.
 USER_LINKS = {
@@ -245,6 +258,139 @@ def seed_module2(db: Session, data: dict | None = None) -> dict[str, int]:
     return created
 
 
+def _check_history(raw: dict) -> None:
+    """Refuse seed histories the state machine would never produce."""
+    status = ClaimStatus.DRAFT
+    for number, event in enumerate(raw["events"], 1):
+        if event["sequence_no"] != number or event["from_status"] != status:
+            raise ValueError(f"{raw['claim_number']}: history is not a continuous chain")
+        rule = claim_rules.assert_transition(
+            event["from_status"], event["to_status"], event["actor_role"]
+        )
+        if rule.action != event["action"]:
+            raise ValueError(f"{raw['claim_number']}: event {number} has the wrong action")
+        status = ClaimStatus(event["to_status"])
+    if status != raw["status"]:
+        raise ValueError(f"{raw['claim_number']}: status does not match its latest history event")
+
+
+def seed_module3(db: Session, data: dict | None = None) -> dict[str, int]:
+    """Claim types and the frontend's demo claims, with their full histories;
+    one transaction. Every history is replayed through the state machine
+    first, so no impossible history can be seeded."""
+    data = data or json.loads(CLAIMS_FILE.read_text(encoding="utf-8"))
+    created = {"claim_types": 0, "claims": 0}
+
+    existing = set(db.scalars(select(ClaimType.code)))
+    for raw in data["claim_types"]:
+        if raw["code"] in existing:
+            continue
+        db.add(
+            ClaimType(
+                code=raw["code"],
+                label=raw["label"],
+                product_type=raw["product_type"],
+                coverage_item=raw["coverage_item"],
+                percent_of_coverage=raw["percent_of_coverage"],
+                max_amount=Decimal(str(raw["max_amount"])) if raw["max_amount"] else None,
+                limit_basis=raw["limit_basis"],
+                description=raw["description"],
+                documents=[
+                    ClaimTypeDocument(
+                        doc_type=d["doc_type"],
+                        label=d["label"],
+                        suggested_name=d["suggested_name"],
+                        is_required=d["required"],
+                        position=d["position"],
+                    )
+                    for d in raw["documents"]
+                ],
+            )
+        )
+        created["claim_types"] += 1
+    db.flush()
+
+    types = {t.code: t for t in db.scalars(select(ClaimType))}
+    existing = set(db.scalars(select(Claim.claim_number)))
+
+    def money(value) -> Decimal | None:
+        return None if value is None else Decimal(str(value)).quantize(claim_rules.CENT)
+
+    for raw in data["claims"]:
+        if raw["claim_number"] in existing:
+            continue
+        _check_history(raw)
+        policy = db.scalars(
+            select(Policy).where(Policy.policy_number == raw["policy_number"])
+        ).one()
+        claim = Claim(
+            claim_number=raw["claim_number"],
+            policy=policy,
+            claim_type=types[raw["claim_type"]],
+            incident_date=date.fromisoformat(raw["incident_date"]),
+            filing_date=date.fromisoformat(raw["filing_date"]),
+            description=raw["description"],
+            claimed_amount=money(raw["claimed_amount"]),
+            approved_amount=money(raw["approved_amount"]),
+            rejection_reason=raw["rejection_reason"],
+            status=raw["status"],
+            documents=[
+                ClaimDocument(
+                    doc_type=d["doc_type"],
+                    file_name=d["file_name"],
+                    status=d["status"],
+                    submitted_at=datetime.fromisoformat(d["submitted_at"]),
+                )
+                for d in raw["documents"]
+            ],
+        )
+        db.add(claim)
+        db.flush()
+        if raw["verification"]:
+            db.add(ClaimVerification(claim_id=claim.id, **raw["verification"]))
+        if raw["assessment"]:
+            a = raw["assessment"]
+            db.add(
+                ClaimAssessment(
+                    claim_id=claim.id,
+                    assessed_amount=money(a["assessed_amount"]),
+                    illustrative_limit=money(a["illustrative_limit"]),
+                    limit_basis=a["limit_basis"],
+                    note=a["note"],
+                )
+            )
+        if raw["settlement"]:
+            s = raw["settlement"]
+            db.add(
+                ClaimSettlement(
+                    claim_id=claim.id,
+                    settlement_reference=s["settlement_reference"],
+                    amount=money(s["amount"]),
+                    settled_on=date.fromisoformat(s["settled_on"]),
+                )
+            )
+        for e in raw["events"]:
+            db.add(
+                ClaimEvent(
+                    claim_id=claim.id,
+                    sequence_no=e["sequence_no"],
+                    action=e["action"],
+                    from_status=e["from_status"],
+                    to_status=e["to_status"],
+                    # Historical demo events predate login accounts.
+                    actor_user_id=None,
+                    actor_name=e["actor_name"],
+                    actor_role=e["actor_role"],
+                    note=e["note"],
+                    occurred_at=datetime.fromisoformat(e["occurred_at"]),
+                )
+            )
+        created["claims"] += 1
+
+    db.commit()
+    return created
+
+
 def main() -> int:
     if get_settings().app_env == "production":
         print("Refusing to seed development data when APP_ENV=production.", file=sys.stderr)
@@ -256,6 +402,8 @@ def main() -> int:
         created = seed_module1(db)
     with SessionLocal() as db:
         created |= seed_module2(db)
+    with SessionLocal() as db:
+        created |= seed_module3(db)
 
     print(f"users     created {len(users)}")
     for key, count in created.items():

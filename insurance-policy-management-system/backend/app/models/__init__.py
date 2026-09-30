@@ -6,7 +6,20 @@ as the relational schema is designed.
 """
 
 from app.db.base import Base
+from app.models.claim import (
+    Claim,
+    ClaimAssessment,
+    ClaimDocument,
+    ClaimEvent,
+    ClaimSettlement,
+    ClaimType,
+    ClaimTypeDocument,
+    ClaimVerification,
+)
 from app.models.enums import (
+    ClaimAction,
+    ClaimDocumentStatus,
+    ClaimStatus,
     InstallmentStatus,
     NomineeRelationship,
     PaymentMethod,
@@ -25,6 +38,17 @@ from app.models.role import Role, RoleName
 from app.models.user import User
 
 __all__ = [
+    "Claim",
+    "ClaimAction",
+    "ClaimAssessment",
+    "ClaimDocument",
+    "ClaimDocumentStatus",
+    "ClaimEvent",
+    "ClaimSettlement",
+    "ClaimStatus",
+    "ClaimType",
+    "ClaimTypeDocument",
+    "ClaimVerification",
     "Agent",
     "Base",
     "Customer",

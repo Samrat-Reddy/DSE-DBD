@@ -115,3 +115,36 @@ class PaymentMethod(StrEnum):
     UPI = "upi"
     CARD = "card"
     NET_BANKING = "net_banking"
+
+
+class ClaimStatus(StrEnum):
+    """Claim workflow states (frontend CLAIM_STATUS, snake_case)."""
+
+    DRAFT = "draft"
+    SUBMITTED = "submitted"
+    UNDER_REVIEW = "under_review"
+    VERIFIED = "verified"
+    ASSESSED = "assessed"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    SETTLED = "settled"
+    CANCELLED = "cancelled"
+
+
+class ClaimAction(StrEnum):
+    """The named move behind each workflow transition (frontend CLAIM_ACTIONS)."""
+
+    SUBMIT = "submit"
+    CANCEL_DRAFT = "cancel_draft"
+    START_REVIEW = "start_review"
+    WITHDRAW = "withdraw"
+    VERIFY = "verify"
+    ASSESS = "assess"
+    APPROVE = "approve"
+    REJECT = "reject"
+    SETTLE = "settle"
+
+
+class ClaimDocumentStatus(StrEnum):
+    SUBMITTED = "submitted"
+    VERIFIED = "verified"

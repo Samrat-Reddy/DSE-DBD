@@ -27,7 +27,7 @@ const LIFE = 'POL-2024-000226'
 
 before(async () => {
   harness = await createHarness()
-  claims = await harness.load('/src/services/claimService.js')
+  claims = await harness.load('/src/services/mockClaimLedger.js')
   // Module 1 now issues through the API; this module still reads the mock register.
   policies = await loadMockPolicyRegister(harness)
   premiums = await harness.load('/src/services/mockPremiumLedger.js')
@@ -470,7 +470,7 @@ describe('persistence', () => {
 
     const reloaded = await createHarness()
     try {
-      const fresh = await reloaded.load('/src/services/claimService.js')
+      const fresh = await reloaded.load('/src/services/mockClaimLedger.js')
       const listAfter = await fresh.getClaims()
       assert.equal(listAfter.total, listBefore.total)
       assert.equal(listAfter.items.find((item) => item.claimId === 'CLM-2026-000044').status, settledSeed.status)
@@ -487,7 +487,7 @@ describe('persistence', () => {
       storage.setItem('ipms.claims.session', value)
       const reloaded = await createHarness()
       try {
-        const fresh = await reloaded.load('/src/services/claimService.js')
+        const fresh = await reloaded.load('/src/services/mockClaimLedger.js')
         assert.equal((await fresh.getClaims()).total, 8, `fallback for ${value.slice(0, 20)}`)
       } finally {
         await reloaded.close()
@@ -499,7 +499,7 @@ describe('persistence', () => {
     storage.setItem('ipms.claims.session', JSON.stringify({ version: 1, claims: [{ claimId: 'CLM-BAD' }] }))
     const reloaded = await createHarness()
     try {
-      const fresh = await reloaded.load('/src/services/claimService.js')
+      const fresh = await reloaded.load('/src/services/mockClaimLedger.js')
       const list = await fresh.getClaims()
       assert.equal(list.total, 8)
       assert.ok(!list.items.some((item) => item.claimId === 'CLM-BAD'))

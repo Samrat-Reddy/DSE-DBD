@@ -25,7 +25,7 @@
 import { ApiError } from './apiClient'
 import { getAllPolicies } from './mockPolicyStore'
 import { getPayments, getPremiumSchedules } from './mockPremiumLedger'
-import { getClaims } from './claimService'
+import { getClaims } from './mockClaimLedger'
 import { getReminderRecords, getRenewalPolicies } from './renewalService'
 import { getCommissions } from './commissionService'
 import { checkReportAccess } from '../utils/reportAccess'

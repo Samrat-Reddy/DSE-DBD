@@ -34,11 +34,12 @@ const ClaimsList = () => {
   const [query, setQuery] = useState(DEFAULT_CLAIM_QUERY)
   const debouncedSearch = useDebouncedValue(query.search, 300)
 
-  // Summary is loaded once so headline counts stay put while filtering.
-  const overview = useAsync(() => getClaims(), [])
+  // Summary is loaded once per role so headline counts stay put while
+  // filtering; each demo role signs in as a different account and scope.
+  const overview = useAsync(() => getClaims(), [role])
   const claims = useAsync(
     () => getClaims({ ...query, search: debouncedSearch }),
-    [debouncedSearch, query.status, query.claimType, query.sort],
+    [debouncedSearch, query.status, query.claimType, query.sort, role],
   )
 
   const isFiltered = useMemo(

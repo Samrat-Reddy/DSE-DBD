@@ -6,6 +6,7 @@ agent@example.com linked to AGT-2207 and policyholder@example.com to CUS-100241.
 """
 
 import json
+import threading
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -14,10 +15,12 @@ from sqlalchemy import Engine, inspect, select, text
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.models import Agent, Customer, Policy, Product, RoleName
+from app.models import Agent, Customer, Policy, Product, RoleName, User
 from app.repositories import policies as policy_repo
+from app.schemas.policies import PolicyIssueRequest
 from app.scripts.seed_dev_data import SEED_FILE, seed_module1
 from app.scripts.seed_dev_users import DEV_PASSWORD, seed_dev_users
+from app.services import policies as policy_service
 from app.services import users as user_service
 
 pytestmark = pytest.mark.mysql
@@ -105,8 +108,8 @@ def test_module1_tables_and_constraints_exist(mysql_engine: Engine):
         "policies",
         "id_sequences",
     } <= tables
-    # Modules 3-5 do not exist yet (Module 2 tables do, from migration 0004).
-    assert not {"claims", "renewals", "commissions"} & tables
+    # Modules 4-5 do not exist yet (Modules 2 and 3 tables do, from 0004 and 0005).
+    assert not {"renewals", "commissions"} & tables
 
     fks = {fk["name"]: fk["referred_table"] for fk in inspector.get_foreign_keys("policies")}
     assert fks == {
@@ -283,6 +286,38 @@ def test_numbers_continue_after_existing_records_and_roll_back(seeded, mysql_ses
         assert policy_repo.next_policy_number(session, 2024) == "POL-2024-000521"
         assert policy_repo.next_policy_number(session, 2031) == "POL-2031-000001"
         session.commit()
+
+
+def test_concurrent_issuance_gets_unique_numbers_without_deadlock(seeded, mysql_sessions):
+    """Numbering locks only the counter row, so concurrent issuers queue on it
+    instead of deadlocking over the policies/customers indexes they scan."""
+    barrier = threading.Barrier(4)
+    outcomes: list[str] = []
+
+    def issue(n: int) -> None:
+        holder = {
+            **_issue_body()["policyholder"],
+            "full_name": f"Concurrent Holder {chr(65 + n)}",
+            "email": f"concurrent.{n}@example.com",
+            "phone": f"98860 1100{n}",
+        }
+        payload = PolicyIssueRequest(**_issue_body(policyholder=holder))
+        with mysql_sessions() as session:
+            user = session.scalars(select(User).where(User.email == "agent@example.com")).one()
+            barrier.wait()
+            try:
+                result = policy_service.issue_policy(session, user, payload)
+                outcomes.append(result.policy_number)
+            except Exception as error:
+                outcomes.append(f"failed {type(error).__name__}: {error}")
+
+    threads = [threading.Thread(target=issue, args=(n,)) for n in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=30)
+    assert all(o.startswith("POL-") for o in outcomes), outcomes
+    assert len(set(outcomes)) == 4
 
 
 # --- catalog API --------------------------------------------------------------
@@ -616,4 +651,4 @@ def test_column_collations_match_models(mysql_engine: Engine):
             ).all()
         )
     assert actual == expected
-    assert len(expected) == 17  # 12 from Module 1, 5 from Module 2
+    assert len(expected) == 29  # 12 from Module 1, 5 from Module 2, 12 from Module 3

@@ -78,27 +78,46 @@ def get_customer_by_code(db: Session, customer_code: str) -> Customer | None:
 # --- business identifiers ----------------------------------------------------
 #
 # MySQL has no SEQUENCE object, so each identifier family has a counter row in
-# `id_sequences`. `_next_value` runs inside the caller's transaction:
-#   1. create the row if missing, starting from the highest number already in
-#      use (so seeded or imported records are never re-issued);
-#   2. increment it with UPDATE, which takes an exclusive row lock held until
-#      COMMIT/ROLLBACK, serialising concurrent issuers;
-#   3. read the new value back under that lock.
-# A rolled-back issuance rolls the counter back too. The UNIQUE constraints on
-# policy_number / customer_code remain the final guarantee.
+# `id_sequences`. `_next_value`:
+#   1. makes sure the counter row exists (`_ensure_counter`);
+#   2. increments it with UPDATE inside the caller's transaction, which locks
+#      that one existing row until COMMIT/ROLLBACK, serialising issuers;
+#   3. reads the new value back under that lock.
+# Only the counter row is ever locked. Two things would deadlock concurrent
+# issuers under REPEATABLE READ: deriving the seed with INSERT ... SELECT
+# (shared next-key locks on the scanned policies/claims/... index, into whose
+# gaps each issuer then inserts), and an UPDATE or INSERT of a missing counter
+# row inside the business transaction (gap locks on id_sequences).
+# A rolled-back issuance rolls its increment back, so numbers stay gap-free.
+# The UNIQUE constraints on the business numbers remain the final guarantee.
+
+
+def _ensure_counter(db: Session, name: str, seed_max_sql: str, params: dict) -> None:
+    """Create the counter row on first use of a family/year, starting from the
+    highest number already in use (so seeded or imported records are never
+    re-issued). It runs in its own short transaction on a separate connection:
+    creating the row issues no number, so it need not roll back with the
+    caller, and the caller's transaction takes no gap locks. Losing the race to
+    create it is harmless (the duplicate is a no-op)."""
+    # Plain read: sees the caller's snapshot and locks nothing.
+    if db.scalar(select(IdSequence.name).where(IdSequence.name == name)) is not None:
+        return
+    with db.get_bind().connect() as connection:
+        # `seed_max_sql` is one of the constant subqueries below, never user
+        # input; every value (including the prefix) is a bound parameter.
+        seed = connection.scalar(text(f"SELECT COALESCE(({seed_max_sql}), 0)"), params)
+        connection.execute(
+            text(
+                "INSERT INTO id_sequences (name, current_value) VALUES (:name, :seed) "
+                "ON DUPLICATE KEY UPDATE current_value = id_sequences.current_value"
+            ),
+            {"name": name, "seed": seed},
+        )
+        connection.commit()
 
 
 def _next_value(db: Session, name: str, seed_max_sql: str, params: dict) -> int:
-    # `seed_max_sql` is one of the constant subqueries below, never user input;
-    # every value (including the prefix) is a bound parameter.
-    db.execute(
-        text(
-            "INSERT INTO id_sequences (name, current_value) "
-            f"SELECT :name, COALESCE(({seed_max_sql}), 0) "
-            "ON DUPLICATE KEY UPDATE current_value = id_sequences.current_value"
-        ),
-        {"name": name, **params},
-    )
+    _ensure_counter(db, name, seed_max_sql, params)
     db.execute(
         update(IdSequence)
         .where(IdSequence.name == name)
@@ -136,6 +155,30 @@ def next_payment_number(db: Session, year: int) -> str:
         f"payment:{year:04d}",
         "SELECT MAX(CAST(SUBSTRING(payment_number, 10) AS UNSIGNED)) "
         "FROM payments WHERE payment_number LIKE :prefix",
+        {"prefix": f"{prefix}%"},
+    )
+    return f"{prefix}{value:06d}"
+
+
+def next_claim_number(db: Session, year: int) -> str:
+    prefix = f"CLM-{year:04d}-"
+    value = _next_value(
+        db,
+        f"claim:{year:04d}",
+        "SELECT MAX(CAST(SUBSTRING(claim_number, 10) AS UNSIGNED)) "
+        "FROM claims WHERE claim_number LIKE :prefix",
+        {"prefix": f"{prefix}%"},
+    )
+    return f"{prefix}{value:06d}"
+
+
+def next_settlement_reference(db: Session, year: int) -> str:
+    prefix = f"SET-{year:04d}-"
+    value = _next_value(
+        db,
+        f"settlement:{year:04d}",
+        "SELECT MAX(CAST(SUBSTRING(settlement_reference, 10) AS UNSIGNED)) "
+        "FROM claim_settlements WHERE settlement_reference LIKE :prefix",
         {"prefix": f"{prefix}%"},
     )
     return f"{prefix}{value:06d}"

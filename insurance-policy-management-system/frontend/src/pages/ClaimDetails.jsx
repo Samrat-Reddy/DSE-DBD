@@ -59,7 +59,8 @@ const ACTIONS = {
 const ClaimDetails = () => {
   const { claimId } = useParams()
   const { role } = useDemoRole()
-  const record = useAsync(() => getClaimById(claimId), [claimId])
+  // The role is part of the key: visibility and actions depend on who asks.
+  const record = useAsync(() => getClaimById(claimId), [claimId, role])
 
   // The latest details returned by a workflow action, so the page updates in
   // place instead of flashing a loading state after every action.
@@ -68,7 +69,9 @@ const ClaimDetails = () => {
   const [feedback, setFeedback] = useState(null)
   const feedbackRef = useRef(null)
 
-  const details = latest?.claim.claimId === claimId ? latest : record.data
+  // An action's result is only reused for the claim and role it was made for.
+  const details =
+    latest?.claim.claimId === claimId && latest.forRole === role ? latest : record.data
 
   useEffect(() => {
     if (feedback) feedbackRef.current?.focus()
@@ -80,7 +83,7 @@ const ClaimDetails = () => {
       setFeedback(null)
       try {
         const next = await ACTIONS[kind](claimId, { role }, payload)
-        setLatest(next)
+        setLatest({ ...next, forRole: role })
         setFeedback({
           tone: 'success',
           message: `${next.claim.activity.at(-1).label}. Status is now ${CLAIM_STATUS_LABELS[next.claim.status]}.`,
@@ -100,7 +103,7 @@ const ClaimDetails = () => {
       setPending(true)
       try {
         const next = await transitionClaim(claimId, toStatus, { role })
-        setLatest(next)
+        setLatest({ ...next, forRole: role })
         setFeedback({
           tone: 'success',
           message: `${next.claim.activity.at(-1).label}. Status is now ${CLAIM_STATUS_LABELS[next.claim.status]}.`,

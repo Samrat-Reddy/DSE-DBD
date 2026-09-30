@@ -32,10 +32,11 @@ const ClaimFiling = () => {
   const { role, canFileClaim } = useDemoRole()
   const [filed, setFiled] = useState(null)
 
-  const policies = useAsync(() => getEligiblePoliciesForClaim(), [], {
+  // Keyed on the role: which policies may be claimed against depends on who asks.
+  const policies = useAsync(() => getEligiblePoliciesForClaim(), [role], {
     enabled: canFileClaim && !policyId,
   })
-  const context = useAsync(() => getClaimFilingContext(policyId), [policyId], {
+  const context = useAsync(() => getClaimFilingContext(policyId), [policyId, role], {
     enabled: canFileClaim && Boolean(policyId),
   })
 
