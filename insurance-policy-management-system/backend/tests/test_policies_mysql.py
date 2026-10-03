@@ -108,8 +108,8 @@ def test_module1_tables_and_constraints_exist(mysql_engine: Engine):
         "policies",
         "id_sequences",
     } <= tables
-    # Modules 4-5 do not exist yet (Modules 2 and 3 tables do, from 0004 and 0005).
-    assert not {"renewals", "commissions"} & tables
+    # Modules 4-6 tables also exist.
+    assert {"reminders", "commissions", "report_access_log"} <= tables
 
     fks = {fk["name"]: fk["referred_table"] for fk in inspector.get_foreign_keys("policies")}
     assert fks == {
@@ -651,4 +651,6 @@ def test_column_collations_match_models(mysql_engine: Engine):
             ).all()
         )
     assert actual == expected
-    assert len(expected) == 29  # 12 from Module 1, 5 from Module 2, 12 from Module 3
+    assert (
+        len(expected) == 59
+    )  # 12 from Module 1, 5 from Module 2, 12 from Module 3, 30 from Modules 4-6

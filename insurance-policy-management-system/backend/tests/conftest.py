@@ -44,6 +44,16 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 # Tables emptied after each MySQL API test, in foreign-key order.
 DATA_TABLES = (
+    # Module 6
+    "report_access_log",
+    # Module 5
+    "commission_events",
+    "commissions",
+    "commission_rules",
+    # Module 4
+    "reminders",
+    "reminder_check_runs",
+    # Module 3
     "claim_events",
     "claim_settlements",
     "claim_assessments",
@@ -52,6 +62,7 @@ DATA_TABLES = (
     "claims",
     "claim_type_documents",
     "claim_types",
+    # Modules 1-2
     "payments",
     "installments",
     "premium_schedules",
@@ -65,6 +76,7 @@ DATA_TABLES = (
     "id_sequences",
     "users",
 )
+
 
 
 class _IntegrationSettings(BaseSettings):
