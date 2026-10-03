@@ -680,7 +680,7 @@ def run_reminder_check(db: Session, user: User) -> dict:
             run_at=now,
             run_by_user_id=user.id,
             run_by_name=actor_name,
-            run_by_role=user.role.name.value,
+            run_by_role=user.role.name,
             policies_evaluated=plan.evaluated,
         )
         db.add(check_run)
@@ -709,7 +709,7 @@ def run_reminder_check(db: Session, user: User) -> dict:
                 check_run_id=check_run.id,
                 created_by_user_id=user.id,
                 created_by_name=actor_name,
-                created_by_role=user.role.name.value,
+                created_by_role=user.role.name,
                 result=result,
             )
             db.add(r)
@@ -736,7 +736,7 @@ def run_reminder_check(db: Session, user: User) -> dict:
                 check_run_id=check_run.id,
                 created_by_user_id=user.id,
                 created_by_name=actor_name,
-                created_by_role=user.role.name.value,
+                created_by_role=user.role.name,
                 superseded_by=entry.superseded_by,
                 result=result,
             )
@@ -772,7 +772,7 @@ def run_reminder_check(db: Session, user: User) -> dict:
         "runNumber": run_number,
         "asOf": as_of.isoformat(),
         "runAt": now.isoformat(),
-        "runBy": {"name": actor_name, "role": user.role.name.value},
+        "runBy": {"name": actor_name, "role": user.role.name},
         "evaluated": plan.evaluated,
         "generated": generated_out,
         "skippedSuperseded": skipped_out,
@@ -867,7 +867,7 @@ def trigger_reminder(
             sent_at=now if outcome == "sent" else None,
             created_by_user_id=user.id,
             created_by_name=actor_name,
-            created_by_role=user.role.name.value,
+            created_by_role=user.role.name,
             note=note.strip() if note else None,
             result=result,
         )
@@ -943,7 +943,7 @@ def retry_reminder(
             retry_of_id=original.id,
             created_by_user_id=user.id,
             created_by_name=actor_name,
-            created_by_role=user.role.name.value,
+            created_by_role=user.role.name,
             note=note.strip() if note else None,
             result=result,
         )

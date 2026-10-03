@@ -78,7 +78,7 @@ def _log_access(
         ReportAccessLog(
             accessed_by_user_id=user.id,
             accessed_by_name=_actor_name(user),
-            accessed_by_role=user.role.name.value,
+            accessed_by_role=user.role.name,
             report_id=report_id,
             period=period,
             period_from=period_from,
